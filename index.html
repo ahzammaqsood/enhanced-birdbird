@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BirdBird — The Sky is the Limit!</title>
+  <meta name="description" content="A fun and addictive HTML5 web game like Flappy Bird. Flap your way to the top of the leaderboard with customizable settings and professional gameplay!">
+  <meta name="keywords" content="html5 game, flappy bird, web game, birdbird, casual game, mobile game, browser game">
+  <meta name="author" content="BirdBird Game Studio">
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="">
+  <meta property="og:title" content="BirdBird — The Sky is the Limit!">
+  <meta property="og:description" content="A fun and addictive HTML5 web game like Flappy Bird. Flap your way to the top!">
+  <meta property="og:image" content="assets/images/bird.png">
+  
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="">
+  <meta property="twitter:title" content="BirdBird — The Sky is the Limit!">
+  <meta property="twitter:description" content="A fun and addictive HTML5 web game like Flappy Bird. Flap your way to the top!">
+  <meta property="twitter:image" content="assets/images/bird.png">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="assets/images/bird.png">
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/header.css">
+  <link rel="stylesheet" href="css/game.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/ads.css">
+  <link rel="stylesheet" href="css/footer.css">
+  <link rel="stylesheet" href="css/sections.css">
+  
+  <!-- Preload critical assets -->
+  <link rel="preload" href="assets/images/bird.png" as="image">
+  <link rel="preload" href="assets/images/background.png" as="image">
+  <link rel="preload" href="assets/images/pipe.png" as="image">
+</head>
+<body>
+  <!-- Header / Navigation -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="#home" class="brand">
+        <span class="logo">🐦</span>
+        <strong>BirdBird</strong>
+      </a>
+      <nav class="main-nav" aria-label="Main Navigation">
+        <a href="#home" class="nav-link">Home</a>
+        <a href="#leaderboard" class="nav-link">Leaderboard</a>
+        <a href="#blog" class="nav-link">Blog</a>
+        <a href="#about" class="nav-link">About</a>
+        <a href="#privacy" class="nav-link">Privacy</a>
+      </nav>
+      <button class="hamburger" aria-label="Open menu" aria-expanded="false">☰</button>
+    </div>
+  </header>
+
+  <!-- Mobile Navigation Drawer -->
+  <div class="mobile-drawer" id="mobileDrawer" aria-hidden="true">
+    <nav class="drawer-nav">
+      <a href="#home" class="nav-link">🏠 Home</a>
+      <a href="#leaderboard" class="nav-link">🏆 Leaderboard</a>
+      <a href="#blog" class="nav-link">📝 Blog</a>
+      <a href="#about" class="nav-link">ℹ️ About</a>
+      <a href="#privacy" class="nav-link">🔒 Privacy</a>
+    </nav>
+    <button class="drawer-close" aria-label="Close menu">✕</button>
+  </div>
+
+  <!-- Top Banner Ad -->
+  <div class="ad ad-top" role="complementary" aria-label="Top banner advertisement">
+    <div class="ad-box">
+      <span class="ad-label">Ad</span>
+      <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2217235730191893"
+          crossorigin="anonymous"></script>
+      <!-- Header -->
+      <ins class="adsbygoogle"
+          style="display:block"
+          data-ad-client="ca-pub-2217235730191893"
+          data-ad-slot="4088214311"
+          data-ad-format="auto"
+          data-full-width-responsive="true"></ins>
+      <script>
+          (adsbygoogle = window.adsbygoogle || []).push({});
+      </script>
+    </div>
+  </div>
+
+  <main>
+    <!-- HOME / GAME SECTION -->
+    <section id="home" class="section section-home active" aria-labelledby="home-title">
+      <h1 id="home-title" class="sr-only">BirdBird Game</h1>
+
+      <div class="game-wrap container">
+        <!-- Left Sidebar Ad (Desktop) -->
+        <aside class="ad-side" aria-label="Left sidebar advertisement">
+          <div class="ad-box">
+            <span class="ad-label">Ad</span>
+            Side Advertisement (160×600)
+          </div>
+        </aside>
+
+        <!-- Main Game Card -->
+        <div class="game-card">
+          <!-- Game HUD -->
+          <div class="hud">
+            <div class="hud-item">🏆 High: <span id="highScore">0</span></div>
+            <div class="hud-item">🎯 Score: <span id="score">0</span></div>
+          </div>
+
+          <!-- Game Canvas -->
+          <canvas 
+            id="gameCanvas" 
+            width="320" 
+            height="480" 
+            class="game-canvas" 
+            aria-label="BirdBird game canvas" 
+            tabindex="0"
+            role="application">
+            Your browser does not support the HTML5 canvas element.
+          </canvas>
+
+          <!-- Game Overlays -->
+          <!-- Start Overlay -->
+          <div id="overlayStart" class="overlay">
+            <div class="overlay-inner">
+              <img src="assets/images/bird.png" alt="BirdBird character" class="overlay-bird">
+              <h2>BirdBird</h2>
+              <p>Tap, Click, or press Spacebar to flap!</p>
+              <div style="display: flex; gap: 12px; justify-content: center; margin-top: 16px;">
+                <button id="btnStart" class="btn primary">Start Game</button>
+                <button id="btnSettings" class="btn secondary">Settings</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Game Over Overlay -->
+          <div id="overlayGameOver" class="overlay hidden">
+            <div class="overlay-inner">
+              <h2>Game Over</h2>
+              <p>Your Score: <span id="finalScore">0</span></p>
+              <p class="text-muted">High Score: <span id="finalHighScore">0</span></p>
+
+              <form id="saveScoreForm" class="form-group">
+                <label for="playerName" class="form-label">Save to Leaderboard</label>
+                <input 
+                  id="playerName" 
+                  name="playerName" 
+                  type="text" 
+                  maxlength="16" 
+                  placeholder="Enter your name" 
+                  class="form-input"
+                  autocomplete="nickname">
+                <button type="submit" class="btn primary" style="margin-top: 12px;">Save Score</button>
+              </form>
+
+              <div style="display: flex; gap: 12px; justify-content: center; margin-top: 16px;">
+                <button id="btnRestart" class="btn secondary">Play Again</button>
+                <button id="btnSettings2" class="btn ghost">Settings</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Settings Overlay -->
+          <div id="overlaySettings" class="overlay hidden">
+            <div class="overlay-inner overlay-settings">
+              <h2>Game Settings</h2>
+              
+              <div class="settings-grid">
+                <!-- Game Speed -->
+                <div class="setting-item">
+                  <label class="setting-label" for="gameSpeed">Game Speed</label>
+                  <div class="setting-control">
+                    <input 
+                      type="range" 
+                      id="gameSpeed" 
+                      class="range-slider" 
+                      min="0.5" 
+                      max="2.0" 
+                      step="0.1" 
+                      value="1.0">
+                    <span id="gameSpeedValue" class="badge">100%</span>
+                  </div>
+                </div>
+
+                <!-- Sound Toggle -->
+                <div class="setting-item">
+                  <label class="setting-label" for="soundToggle">Sound Effects</label>
+                  <div class="setting-control">
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="soundToggle" checked>
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Difficulty -->
+                <div class="setting-item">
+                  <label class="setting-label" for="difficulty">Difficulty</label>
+                  <div class="setting-control">
+                    <select id="difficulty" class="form-select">
+                      <option value="easy">Easy</option>
+                      <option value="normal" selected>Normal</option>
+                      <option value="hard">Hard</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Show FPS -->
+                <div class="setting-item">
+                  <label class="setting-label" for="showFps">Show FPS</label>
+                  <div class="setting-control">
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="showFps">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 12px; justify-content: center; margin-top: 24px;">
+                <button id="btnCloseSettings" class="btn primary">Close</button>
+                <button id="btnResetSettings" class="btn danger">Reset to Default</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Mobile Ad -->
+          <div class="ad ad-bottom">
+            <div class="ad-box">
+              <span class="ad-label">Ad</span>
+              Mobile Banner (320×50)
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Sidebar Ad (Desktop) -->
+        <aside class="ad-side" aria-label="Right sidebar advertisement">
+          <div class="ad-box">
+            <span class="ad-label">Ad</span>
+            Side Advertisement (160×600)
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- LEADERBOARD SECTION -->
+    <section id="leaderboard" class="section section-leaderboard" aria-labelledby="leaderboard-title">
+      <div class="container">
+        <div class="card">
+          <div class="card-header">
+            <h2 id="leaderboard-title" class="card-title">🏆 Leaderboard</h2>
+            <p class="card-subtitle">Top 10 local scores (saved in your browser)</p>
+          </div>
+          
+          <div class="card-body">
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Player</th>
+                    <th>Score</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody id="leaderboardBody">
+                  <!-- Leaderboard entries will be populated by JavaScript -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <div class="card-footer">
+            <button id="clearBoard" class="btn danger">Clear Leaderboard</button>
+          </div>
+        </div>
+
+        <!-- Inline Ad -->
+        <div class="ad ad-inline">
+          <div class="ad-box">
+            <span class="ad-label">Ad</span>
+            Inline Advertisement (468×60)
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BLOG SECTION -->
+    <section id="blog" class="section section-blog" aria-labelledby="blog-title">
+      <div class="container">
+        <div class="card">
+          <div class="card-header">
+            <h2 id="blog-title" class="card-title">📝 BirdBird Blog</h2>
+            <p class="card-subtitle">Tips, tricks, and updates from the BirdBird community</p>
+          </div>
+          
+          <div class="card-body">
+            <article class="blog-post">
+              <h3>Master the Sky: 7 Essential Tips for Higher Scores</h3>
+              <p class="text-muted">Published on January 15, 2025 • 3 min read</p>
+              
+              <p>
+                BirdBird might look simple—just tap to flap—but achieving consistently high scores requires 
+                mastering the subtle art of rhythm and timing. After analyzing thousands of gameplay sessions 
+                and interviewing top players, we've compiled the most effective strategies for soaring to new heights.
+              </p>
+              
+              <h4>1. Find Your Rhythm</h4>
+              <p>
+                The key to BirdBird success isn't random tapping—it's developing a consistent rhythm. 
+                Top players maintain a steady beat, adjusting only slightly for each pipe gap. Practice 
+                tapping at regular intervals, even when no obstacles are present.
+              </p>
+              
+              <h4>2. Aim for the Center</h4>
+              <p>
+                Always aim for the center of each pipe gap. This gives you the maximum margin for error 
+                and allows for better recovery if your timing is slightly off. Avoid hugging the top or 
+                bottom of gaps unless absolutely necessary.
+              </p>
+              
+              <h4>3. Stay Calm Under Pressure</h4>
+              <p>
+                As your score increases, the game becomes faster and more challenging. The biggest mistake 
+                players make is panicking and over-correcting. Maintain your rhythm and trust your instincts, 
+                even when the pipes are flying by quickly.
+              </p>
+              
+              <h4>4. Use the Difficulty Settings</h4>
+              <p>
+                Don't be afraid to start on Easy mode to build your confidence and muscle memory. 
+                The fundamentals you learn on easier difficulties will transfer to harder modes. 
+                Gradually increase the difficulty as you improve.
+              </p>
+              
+              <h4>5. Practice Short Sessions</h4>
+              <p>
+                Rather than playing for hours straight, practice in focused 10-15 minute sessions. 
+                This prevents fatigue and helps maintain peak concentration. Your best scores often 
+                come when you're fresh and focused.
+              </p>
+              
+              <h4>6. Learn from Your Mistakes</h4>
+              <p>
+                Pay attention to what causes your crashes. Are you tapping too early? Too late? 
+                Not maintaining rhythm? Understanding your common mistakes is the first step to 
+                eliminating them.
+              </p>
+              
+              <h4>7. Customize Your Experience</h4>
+              <p>
+                Use the game settings to find what works best for you. Some players prefer slightly 
+                slower speeds to build accuracy, while others like the challenge of maximum speed. 
+                Experiment with different configurations to find your optimal setup.
+              </p>
+              
+              <p>
+                Remember, becoming a BirdBird master takes time and practice. Don't get discouraged 
+                by early crashes—every expert was once a beginner. Keep practicing, stay patient, 
+                and most importantly, have fun soaring through the skies!
+              </p>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABOUT SECTION -->
+    <section id="about" class="section section-about" aria-labelledby="about-title">
+      <div class="container">
+        <div class="card">
+          <div class="card-header">
+            <h2 id="about-title" class="card-title">ℹ️ About BirdBird</h2>
+            <p class="card-subtitle">Learn more about our game and development</p>
+          </div>
+          
+          <div class="card-body">
+            <p>
+              BirdBird is a modern, lightweight HTML5 canvas game inspired by the classic "tap-to-fly" 
+              arcade genre. Built with performance and accessibility in mind, it delivers smooth gameplay 
+              across all devices while maintaining the addictive simplicity that made the original concept so popular.
+            </p>
+            
+            <h3>🎮 Game Features</h3>
+            <ul>
+              <li><strong>Responsive Design:</strong> Optimized for both desktop and mobile devices</li>
+              <li><strong>Customizable Settings:</strong> Adjust game speed, difficulty, and audio preferences</li>
+              <li><strong>Local Leaderboard:</strong> Track your progress and compete with yourself</li>
+              <li><strong>Smooth Performance:</strong> 60 FPS gameplay with optimized rendering</li>
+              <li><strong>Accessibility:</strong> Keyboard, mouse, and touch support with proper ARIA labels</li>
+            </ul>
+            
+            <h3>🎯 Controls</h3>
+            <ul>
+              <li><strong>Desktop:</strong> Click, Spacebar, or any key to flap</li>
+              <li><strong>Mobile:</strong> Tap anywhere on the screen</li>
+              <li><strong>Keyboard:</strong> Spacebar for flapping, Escape for settings</li>
+            </ul>
+            
+            <h3>🛠️ Technical Details</h3>
+            <p>
+              BirdBird is built using vanilla HTML5, CSS3, and JavaScript—no frameworks required. 
+              This ensures fast loading times, broad compatibility, and minimal resource usage. 
+              The game uses modern web APIs for optimal performance while maintaining compatibility 
+              with older browsers.
+            </p>
+            
+            <h3>🎨 Credits</h3>
+            <p>
+              Game design and development by the BirdBird team. Special thanks to the HTML5 game 
+              development community for inspiration and best practices. Bird sprites and sound 
+              effects are original creations designed specifically for this game.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PRIVACY POLICY SECTION -->
+    <section id="privacy" class="section section-privacy" aria-labelledby="privacy-title">
+      <div class="container">
+        <div class="card">
+          <div class="card-header">
+            <h2 id="privacy-title" class="card-title">🔒 Privacy Policy</h2>
+            <p class="card-subtitle">How we handle your data and protect your privacy</p>
+          </div>
+          
+          <div class="card-body">
+            <p><strong>Last updated:</strong> January 15, 2025</p>
+            
+            <h3>Data Collection</h3>
+            <p>
+              BirdBird is designed with privacy in mind. We collect minimal data to provide 
+              the best gaming experience while respecting your privacy.
+            </p>
+            
+            <h4>Information We Store Locally</h4>
+            <ul>
+              <li><strong>Game Scores:</strong> Your high scores and leaderboard entries are stored locally in your browser</li>
+              <li><strong>Game Settings:</strong> Your preferences for sound, difficulty, and game speed</li>
+              <li><strong>Player Names:</strong> Names you enter for leaderboard entries (stored locally only)</li>
+            </ul>
+            
+            <h4>Information We Don't Collect</h4>
+            <ul>
+              <li>Personal identifying information</li>
+              <li>Email addresses or contact information</li>
+              <li>Location data</li>
+              <li>Device information beyond what's necessary for gameplay</li>
+              <li>Browsing history or activity on other websites</li>
+            </ul>
+            
+            <h3>Local Storage</h3>
+            <p>
+              All game data is stored locally in your browser using localStorage. This means:
+            </p>
+            <ul>
+              <li>Your data never leaves your device</li>
+              <li>We cannot access your scores or settings</li>
+              <li>Clearing your browser data will remove all game progress</li>
+              <li>Your data is not shared with third parties</li>
+            </ul>
+            
+            <h3>Cookies and Tracking</h3>
+            <p>
+              BirdBird does not use cookies for tracking or analytics. We do not track your 
+              behavior across websites or collect data for advertising purposes.
+            </p>
+            
+            <h3>Third-Party Services</h3>
+            <p>
+              This website may display advertisements from third-party providers. These ads 
+              may use cookies or similar technologies. We recommend reviewing the privacy 
+              policies of any third-party services you interact with.
+            </p>
+            
+            <h3>Data Security</h3>
+            <p>
+              Since all data is stored locally on your device, the security of your game 
+              data depends on your device's security. We recommend keeping your browser 
+              and operating system updated for optimal security.
+            </p>
+            
+            <h3>Children's Privacy</h3>
+            <p>
+              BirdBird is suitable for all ages. We do not knowingly collect personal 
+              information from children under 13. Since all data is stored locally, 
+              parents have full control over their children's game data.
+            </p>
+            
+            <h3>Changes to This Policy</h3>
+            <p>
+              We may update this privacy policy from time to time. Any changes will be 
+              posted on this page with an updated revision date. Continued use of the 
+              game after changes constitutes acceptance of the updated policy.
+            </p>
+            
+            <h3>Contact Us</h3>
+            <p>
+              If you have questions about this privacy policy or our data practices, 
+              please contact us through the game's feedback system or visit our support page.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Enhanced Footer -->
+  <footer class="site-footer">
+    <div class="container footer-content">
+      <!-- Game Stats -->
+      <div class="game-stats">
+        <h3>🎮 Game Statistics</h3>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <span class="stat-value" id="totalGamesPlayed">0</span>
+            <span class="stat-label">Games Played</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="totalScore">0</span>
+            <span class="stat-label">Total Score</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="averageScore">0</span>
+            <span class="stat-label">Average Score</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value" id="bestStreak">0</span>
+            <span class="stat-label">Best Streak</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Grid -->
+      <div class="footer-grid">
+        <!-- Main Info -->
+        <div class="footer-section">
+          <h3>🐦 BirdBird</h3>
+          <p>
+            The ultimate HTML5 flying game experience. Challenge yourself, 
+            beat your high scores, and soar to new heights in this addictive 
+            arcade-style adventure.
+          </p>
+          <div class="social-links">
+            <a href="#" class="social-link" aria-label="Facebook">📘</a>
+            <a href="#" class="social-link" aria-label="Twitter">🐦</a>
+            <a href="#" class="social-link" aria-label="Instagram">📷</a>
+            <a href="#" class="social-link" aria-label="YouTube">📺</a>
+          </div>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="footer-section">
+          <h3>Quick Links</h3>
+          <ul class="footer-links">
+            <li><a href="#home">Play Game</a></li>
+            <li><a href="#leaderboard">Leaderboard</a></li>
+            <li><a href="#blog">Game Tips</a></li>
+            <li><a href="#about">About</a></li>
+          </ul>
+        </div>
+
+        <!-- Support -->
+        <div class="footer-section">
+          <h3>Support</h3>
+          <ul class="footer-links">
+            <li><a href="#privacy">Privacy Policy</a></li>
+            <li><a href="#" onclick="showFeedback()">Feedback</a></li>
+            <li><a href="#" onclick="showHelp()">Help & FAQ</a></li>
+            <li><a href="#" onclick="reportBug()">Report Bug</a></li>
+          </ul>
+        </div>
+
+        <!-- Newsletter -->
+        <div class="footer-section">
+          <div class="newsletter">
+            <h3>Stay Updated</h3>
+            <p>Get notified about new features and updates!</p>
+            <form class="newsletter-form" onsubmit="subscribeNewsletter(event)">
+              <input 
+                type="email" 
+                class="newsletter-input" 
+                placeholder="Enter your email"
+                required>
+              <button type="submit" class="newsletter-btn">Subscribe</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Bottom -->
+      <div class="footer-bottom">
+        <div class="footer-bottom-content">
+          <p class="footer-copyright">
+            © 2025 BirdBird Game Studio. All rights reserved.
+          </p>
+          <div class="footer-legal">
+            <a href="#privacy">Privacy Policy</a>
+            <a href="#" onclick="showTerms()">Terms of Service</a>
+            <a href="#" onclick="showCookies()">Cookie Policy</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Floating Ad (Desktop) -->
+  <div class="ad ad-floating" id="floatingAd">
+    <div class="ad-box">
+      <span class="ad-label">Ad</span>
+      Floating Ad (200×200)
+      <button class="ad-close" onclick="closeFloatingAd()" aria-label="Close ad">✕</button>
+    </div>
+  </div>
+
+  <!-- Audio Elements (Preloaded) -->
+  <audio id="sfxFlap" preload="auto">
+    <source src="assets/audio/flap.ogg" type="audio/ogg">
+    Your browser does not support the audio element.
+  </audio>
+  <audio id="sfxHit" preload="auto">
+    <source src="assets/audio/hit.ogg" type="audio/ogg">
+  </audio>
+  <audio id="sfxPoint" preload="auto">
+    <source src="assets/audio/score.ogg" type="audio/ogg">
+  </audio>
+  <audio id="sfxDie" preload="auto">
+    <source src="assets/audio/die.ogg" type="audio/ogg">
+  </audio>
+
+  <!-- JavaScript Files -->
+  <script src="js/game-config.js"></script>
+  <script src="js/audio-manager.js"></script>
+  <script src="js/leaderboard.js"></script>
+  <script src="js/game-engine.js"></script>
+  <script src="js/ui-manager.js"></script>
+  <script src="js/main.js"></script>
+  
+  <!-- Additional Utility Scripts -->
+  <script>
+    // Utility functions for footer interactions
+    function showFeedback() {
+      alert('Feedback system coming soon! For now, please use browser developer tools to report issues.');
+    }
+    
+    function showHelp() {
+      alert('Help: Use Spacebar, Click, or Tap to make the bird flap. Avoid pipes and try to get the highest score!');
+    }
+    
+    function reportBug() {
+      alert('Bug reporting system coming soon! Please note any issues and check the browser console for error details.');
+    }
+    
+    function showTerms() {
+      alert('Terms of Service: This is a free game for entertainment purposes. Play responsibly and have fun!');
+    }
+    
+    function showCookies() {
+      alert('Cookie Policy: This game uses only local storage for saving your progress. No tracking cookies are used.');
+    }
+    
+    function subscribeNewsletter(event) {
+      event.preventDefault();
+      alert('Newsletter subscription coming soon! Thanks for your interest in BirdBird updates.');
+    }
+    
+    function closeFloatingAd() {
+      document.getElementById('floatingAd').style.display = 'none';
+    }
+    
+    // Show floating ad after 30 seconds (desktop only)
+    if (window.innerWidth >= 768) {
+      setTimeout(() => {
+        const floatingAd = document.getElementById('floatingAd');
+        if (floatingAd) {
+          floatingAd.style.display = 'block';
+        }
+      }, 30000);
+    }
+  </script>
+</body>
+</html>
+
