@@ -18,6 +18,9 @@ class BirdBirdGame {
         });
       }
       
+      // Optimize for performance
+      this.optimizePerformance();
+      
       // Initialize managers
       this.audioManager = new AudioManager();
       this.leaderboardManager = new LeaderboardManager();
@@ -46,6 +49,40 @@ class BirdBirdGame {
       console.error('Failed to initialize game:', error);
       this.showError('Failed to load game. Please refresh the page.');
     }
+  }
+  
+  optimizePerformance() {
+    // Disable smooth scrolling on low-end devices
+    if (navigator.hardwareConcurrency && navigator.hardwareConcurrency < 4) {
+      document.documentElement.style.scrollBehavior = 'auto';
+    }
+    
+    // Optimize canvas for better performance
+    const canvas = document.getElementById('gameCanvas');
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      // Disable image smoothing for pixel-perfect rendering
+      ctx.imageSmoothingEnabled = false;
+      ctx.webkitImageSmoothingEnabled = false;
+      ctx.mozImageSmoothingEnabled = false;
+      ctx.msImageSmoothingEnabled = false;
+    }
+    
+    // Preload critical resources
+    this.preloadCriticalAssets();
+  }
+  
+  preloadCriticalAssets() {
+    const criticalImages = [
+      'assets/images/bird.png',
+      'assets/images/background.png',
+      'assets/images/pipe.png'
+    ];
+    
+    criticalImages.forEach(src => {
+      const img = new Image();
+      img.src = src;
+    });
   }
   
   setupGameEvents() {

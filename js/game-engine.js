@@ -119,13 +119,15 @@ class GameEngine {
     if (this.state !== 'playing') return;
     
     const deltaTime = currentTime - this.lastFrameTime;
+    const targetFrameTime = GameConfig.PERFORMANCE.FRAME_TIME;
     
-    // Cap frame rate
-    if (deltaTime >= GameConfig.PERFORMANCE.FRAME_TIME) {
+    // Improved frame rate control with better timing
+    if (deltaTime >= targetFrameTime) {
       this.update(deltaTime);
       this.render();
       
-      this.lastFrameTime = currentTime;
+      // Prevent frame time drift
+      this.lastFrameTime = currentTime - (deltaTime % targetFrameTime);
       this.frame++;
       
       // Calculate FPS
@@ -141,11 +143,15 @@ class GameEngine {
   }
   
   update(deltaTime) {
+    // Normalize delta time to prevent large jumps
+    const normalizedDelta = Math.min(deltaTime, GameConfig.PERFORMANCE.FRAME_TIME * 2);
+    const frameMultiplier = normalizedDelta / GameConfig.PERFORMANCE.FRAME_TIME;
+    
     const speedMultiplier = GameSettings.gameSpeed;
     
     // Update bird physics
-    this.bird.velocity += GameConfig.BIRD.GRAVITY * speedMultiplier;
-    this.bird.y += this.bird.velocity * speedMultiplier;
+    this.bird.velocity += GameConfig.BIRD.GRAVITY * speedMultiplier * frameMultiplier;
+    this.bird.y += this.bird.velocity * speedMultiplier * frameMultiplier;
     
     // Spawn pipes
     if (this.frame % GameConfig.PIPE.SPAWN_INTERVAL === 0) {
@@ -153,7 +159,7 @@ class GameEngine {
     }
     
     // Update pipes
-    const currentSpeed = this.getCurrentPipeSpeed() * speedMultiplier;
+    const currentSpeed = this.getCurrentPipeSpeed() * speedMultiplier * frameMultiplier;
     this.pipes.forEach(pipe => {
       pipe.x -= currentSpeed;
     });
@@ -165,7 +171,7 @@ class GameEngine {
     this.checkCollisions();
     
     // Check scoring
-    this.checkScoring(currentSpeed);
+    this.checkScoring();
   }
   
   getCurrentPipeSpeed() {
@@ -212,7 +218,7 @@ class GameEngine {
     }
   }
   
-  checkScoring(currentSpeed) {
+  checkScoring() {
     for (const pipe of this.pipes) {
       if (!pipe.scored && pipe.x + GameConfig.PIPE.WIDTH < GameConfig.BIRD.X) {
         pipe.scored = true;
