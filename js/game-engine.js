@@ -13,7 +13,13 @@ class GameEngine {
     this.frameCount = 0;
     this.lastFpsUpdate = 0;
     
-    // Game objects
+        // Offscreen background cache for smoother mobile rendering
+    this._offscreenBg = document.createElement('canvas');
+    this._offscreenBgCtx = this._offscreenBg.getContext('2d');
+    this._bgNeedsUpdate = true;
+    this._bgOffset = 0;
+
+// Game objects
     this.bird = {
       y: GameConfig.BIRD.START_Y,
       velocity: 0
@@ -48,18 +54,43 @@ class GameEngine {
     window.addEventListener('resize', () => this.fitCanvas());
   }
   
-  fitCanvas() {
+  
+fitCanvas() {
     const container = this.canvas.parentElement;
     const containerRect = container.getBoundingClientRect();
     const aspectRatio = GameConfig.CANVAS_WIDTH / GameConfig.CANVAS_HEIGHT;
-    
-    let width = containerRect.width - 24; // account for padding
-    let height = width / aspectRatio;
-    
-    if (height > window.innerHeight * 0.7) {
-      height = window.innerHeight * 0.7;
-      width = height * aspectRatio;
+
+    // Calculate CSS display size
+    let cssWidth = Math.max(100, containerRect.width - 24); // account for padding, min width
+    let cssHeight = cssWidth / aspectRatio;
+
+    // Limit height so overlay doesn't overflow on small screens
+    if (cssHeight > window.innerHeight * 0.7) {
+      cssHeight = window.innerHeight * 0.7;
+      cssWidth = cssHeight * aspectRatio;
     }
+
+    // Device Pixel Ratio for crisp rendering, cap to avoid excessive work on very high-DPI phones
+    const DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+    // Scale factor that maps game logical units (GameConfig.CANVAS_WIDTH) -> physical pixels
+    const scale = (cssWidth * DPR) / GameConfig.CANVAS_WIDTH;
+
+    // Set internal drawing buffer (physical pixels)
+    this.canvas.width = Math.round(GameConfig.CANVAS_WIDTH * scale);
+    this.canvas.height = Math.round(GameConfig.CANVAS_HEIGHT * scale);
+
+    // Set CSS size for layout (logical pixels)
+    this.canvas.style.width = Math.round(cssWidth) + 'px';
+    this.canvas.style.height = Math.round(cssHeight) + 'px';
+
+    // Apply transform so the rest of the code can continue drawing in logical game units (GameConfig.*)
+    this.ctx.setTransform(scale, 0, 0, scale, 0, 0);
+
+    // Mark background cache to be rebuilt at new size
+    this._bgNeedsUpdate = true;
+  }
+
     
     this.canvas.style.width = width + 'px';
     this.canvas.style.height = height + 'px';
@@ -279,14 +310,52 @@ class GameEngine {
     }
   }
   
-  drawBackground() {
-    if (this.assets.background.complete && this.assets.background.naturalWidth) {
-      const bgWidth = this.assets.background.width;
-      const offset = (this.frame * 0.5) % bgWidth;
-      
-      for (let x = -offset; x < this.canvas.width + bgWidth; x += bgWidth) {
-        this.ctx.drawImage(this.assets.background, x, 0, bgWidth, this.canvas.height);
+  
+drawBackground() {
+    // Use an offscreen canvas to pre-render the tiled background once per resize
+    if (this.assets.background && this.assets.background.complete && this.assets.background.naturalWidth) {
+      const bg = this.assets.background;
+
+      // If offscreen buffer doesn't match the current canvas size, rebuild it
+      if (this._offscreenBg.width !== this.canvas.width || this._offscreenBg.height !== this.canvas.height || this._bgNeedsUpdate) {
+        this._offscreenBg.width = this.canvas.width;
+        this._offscreenBg.height = this.canvas.height;
+        const bctx = this._offscreenBgCtx;
+        bctx.clearRect(0, 0, this._offscreenBg.width, this._offscreenBg.height);
+
+        // Maintain aspect ratio of the source image when drawing
+        const scaleY = this._offscreenBg.height / (bg.naturalHeight || bg.height);
+        const drawW = Math.round((bg.naturalWidth || bg.width) * scaleY);
+        // tile horizontally into offscreen buffer
+        for (let x = 0; x < this._offscreenBg.width + drawW; x += drawW) {
+          bctx.drawImage(bg, x, 0, drawW, this._offscreenBg.height);
+        }
+        this._bgNeedsUpdate = false;
       }
+
+      // Parallax: advance offset smoothly (frame-independent)
+      this._bgOffset = (this._bgOffset + 0.5) % this._offscreenBg.width;
+
+      // Draw the offscreen background with offset (two draws to cover wrap)
+      const ox = Math.round(this._bgOffset);
+      const w = this._offscreenBg.width;
+      this.ctx.drawImage(this._offscreenBg, -ox, 0, w, this._offscreenBg.height);
+      if (ox > 0) {
+        this.ctx.drawImage(this._offscreenBg, w - ox, 0, w, this._offscreenBg.height);
+      }
+    } else {
+      // Fallback gradient background (cached per height)
+      if (!this._bgGradient || this._bgGradientHeight !== this.canvas.height) {
+        this._bgGradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+        this._bgGradient.addColorStop(0, '#87CEEB');
+        this._bgGradient.addColorStop(1, '#98D8E8');
+        this._bgGradientHeight = this.canvas.height;
+      }
+      this.ctx.fillStyle = this._bgGradient;
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+  }
+
     } else {
       // Fallback gradient background
       const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
