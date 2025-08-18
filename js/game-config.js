@@ -52,11 +52,11 @@ const GameConfig = {
 
 // Game settings that can be modified by user
 const GameSettings = {
-  gameSpeed: 1.0,
+  gameSpeed: 1.4,          // default ab 1.4
   soundEnabled: true,
-  difficulty: 'normal', // easy, normal, hard
+  difficulty: 'normal',    // default normal
   showFPS: false,
-  
+
   // Load settings from localStorage
   load() {
     try {
@@ -69,7 +69,7 @@ const GameSettings = {
       console.warn('Failed to load game settings:', e);
     }
   },
-  
+
   // Save settings to localStorage
   save() {
     try {
@@ -83,13 +83,23 @@ const GameSettings = {
       console.warn('Failed to save game settings:', e);
     }
   },
-  
+
+  // 🔹 Reset settings to default values
+  reset() {
+    this.gameSpeed = 1.4;
+    this.soundEnabled = true;
+    this.difficulty = 'normal';
+    this.showFPS = false;
+    this.save();           // save after reset
+    this.applyDifficulty();// apply difficulty defaults again
+  },
+
   // Apply difficulty settings
   applyDifficulty() {
     switch (this.difficulty) {
       case 'easy':
         GameConfig.BIRD.GRAVITY = 0.15;
-        GameConfig.PIPE.GAP = 140;
+        GameConfig.PIPE.GAP = 1.4;
         GameConfig.PIPE.BASE_SPEED = 1.2;
         break;
       case 'hard':
@@ -101,6 +111,7 @@ const GameSettings = {
         GameConfig.BIRD.GRAVITY = 0.2;
         GameConfig.PIPE.GAP = 120;
         GameConfig.PIPE.BASE_SPEED = 1.5;
+        this.gameSpeed = 1.4; // ensure reset works here also
     }
   }
 };
