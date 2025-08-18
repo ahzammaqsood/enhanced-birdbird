@@ -1,0 +1,340 @@
+/* Responsive Design Improvements */
+
+/* Mobile-first approach */
+@media (max-width: 768px) {
+  /* Header improvements */
+  .site-header {
+    padding: 0.5rem 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+    background: rgba(26, 32, 44, 0.9);
+  }
+  
+  .header-inner {
+    justify-content: space-between;
+  }
+  
+  .main-nav {
+    display: none;
+  }
+  
+  .hamburger {
+    display: block;
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+  }
+  
+  /* Mobile drawer */
+  .mobile-drawer {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 280px;
+    height: 100vh;
+    background: var(--bg-primary);
+    border-left: 1px solid var(--border-primary);
+    transition: right 0.3s ease;
+    z-index: 1001;
+    overflow-y: auto;
+  }
+  
+  .mobile-drawer.open {
+    right: 0;
+  }
+  
+  .drawer-nav {
+    padding: 2rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .drawer-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+  }
+  
+  /* Game layout */
+  .game-wrap {
+    grid-template-columns: 1fr;
+    padding: 0 1rem;
+    gap: 1rem;
+  }
+  
+  .game-card {
+    margin: 0;
+    padding: 1rem;
+    border-radius: 1rem;
+  }
+  
+  /* Canvas sizing for mobile */
+  .game-canvas {
+    max-width: 100%;
+    width: 100% !important;
+    height: auto !important;
+    border-radius: 0.75rem;
+    touch-action: manipulation;
+  }
+  
+  /* HUD adjustments */
+  .hud {
+    top: 0.5rem;
+    right: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+  }
+  
+  /* Overlay improvements */
+  .overlay {
+    padding: 1rem;
+  }
+  
+  .overlay-inner {
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 1.5rem;
+  }
+  
+  .overlay-settings {
+    max-height: 80vh;
+  }
+  
+  /* Button improvements */
+  .btn {
+    min-height: 44px; /* Touch target size */
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+  }
+  
+  /* Settings grid */
+  .settings-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .setting-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  
+  .setting-control {
+    justify-content: flex-start;
+  }
+  
+  /* Form improvements */
+  .form-input {
+    min-height: 44px;
+    font-size: 1rem;
+  }
+  
+  /* Hide ads on mobile for better experience */
+  .ad-side {
+    display: none;
+  }
+  
+  .ad-top,
+  .ad-bottom {
+    margin: 0.5rem 0;
+  }
+  
+  /* Section spacing */
+  .section {
+    padding: 1rem 0;
+  }
+  
+  .container {
+    padding: 0 1rem;
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .game-wrap {
+    grid-template-columns: 1fr;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  
+  .ad-side {
+    display: none;
+  }
+  
+  .game-canvas {
+    max-width: 500px;
+  }
+}
+
+/* Desktop improvements */
+@media (min-width: 1025px) {
+  .hamburger {
+    display: none;
+  }
+  
+  .main-nav {
+    display: flex;
+  }
+  
+  .game-wrap {
+    grid-template-columns: 200px 1fr 200px;
+    max-width: 1200px;
+    align-items: start;
+  }
+  
+  .game-canvas {
+    max-width: 400px;
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .game-canvas {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* Landscape mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  .game-card {
+    padding: 0.5rem;
+  }
+  
+  .overlay-inner {
+    max-height: 85vh;
+    padding: 1rem;
+  }
+  
+  .hud {
+    top: 0.25rem;
+    right: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .btn:hover {
+    transform: none;
+  }
+  
+  .game-canvas:hover {
+    border-color: var(--border-secondary);
+    box-shadow: none;
+  }
+  
+  .game-card:hover {
+    transform: none;
+  }
+  
+  /* Larger touch targets */
+  .nav-link {
+    padding: 1rem;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .toggle-switch {
+    min-width: 60px;
+    min-height: 34px;
+  }
+  
+  .range-slider {
+    min-height: 44px;
+  }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .mobile-drawer {
+    transition: none;
+  }
+}
+
+/* Dark mode improvements */
+@media (prefers-color-scheme: dark) {
+  .game-canvas {
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  
+  .overlay {
+    background: rgba(0, 0, 0, 0.9);
+  }
+  
+  .mobile-drawer {
+    background: var(--bg-primary);
+    border-left-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Screen shake animation */
+@keyframes screenShake {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-2px, -1px); }
+  20% { transform: translate(2px, 1px); }
+  30% { transform: translate(-1px, 2px); }
+  40% { transform: translate(1px, -2px); }
+  50% { transform: translate(-2px, 1px); }
+  60% { transform: translate(2px, -1px); }
+  70% { transform: translate(-1px, -2px); }
+  80% { transform: translate(1px, 2px); }
+  90% { transform: translate(-2px, -1px); }
+}
+
+.screen-shake {
+  animation: screenShake 0.5s ease-in-out;
+}
+
+/* Loading animation */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.loading {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Particle effects */
+.particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: particleFade 1s ease-out forwards;
+}
+
+@keyframes particleFade {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+

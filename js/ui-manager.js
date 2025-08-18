@@ -153,7 +153,7 @@ class UIManager {
   
   startGame() {
     this.hideAllOverlays();
-    this.game.reset();
+    this.game.startGame(); // Use startGame instead of reset
     this.elements.canvas?.focus();
   }
   
@@ -203,6 +203,19 @@ class UIManager {
       this.elements.finalHighScoreDisplay.textContent = String(this.game.highScore);
     }
     
+    // Smart leaderboard button logic - only show if new high score
+    const saveScoreForm = this.elements.saveScoreForm;
+    if (saveScoreForm) {
+      if (this.game.score > 0 && this.game.score >= this.game.highScore) {
+        saveScoreForm.style.display = 'block';
+      } else {
+        saveScoreForm.style.display = 'none';
+      }
+    }
+    
+    // Add share button
+    this.addShareButton();
+    
     this.elements.overlayGameOver?.classList.remove('hidden');
     
     // Focus on name input if it's a high score
@@ -214,6 +227,52 @@ class UIManager {
     
     // Update statistics
     this.updateStatistics();
+  }
+  
+  addShareButton() {
+    // Check if share button already exists
+    let shareButton = document.getElementById('btnShare');
+    if (!shareButton) {
+      shareButton = document.createElement('button');
+      shareButton.id = 'btnShare';
+      shareButton.className = 'btn secondary';
+      shareButton.textContent = 'Share Score';
+      shareButton.style.marginTop = '12px';
+      
+      shareButton.addEventListener('click', () => {
+        this.shareScore();
+      });
+      
+      // Insert before restart button
+      const restartButton = this.elements.btnRestart;
+      if (restartButton && restartButton.parentNode) {
+        const buttonContainer = restartButton.parentNode;
+        buttonContainer.insertBefore(shareButton, restartButton);
+      }
+    }
+  }
+  
+  shareScore() {
+    const score = this.game.score;
+    const text = `I just scored ${score} points in BirdBird! Can you beat my score?`;
+    const url = window.location.href;
+    
+    if (navigator.share) {
+      // Use native sharing if available
+      navigator.share({
+        title: 'BirdBird Score',
+        text: text,
+        url: url
+      }).catch(console.error);
+    } else {
+      // Fallback to Twitter/X sharing
+      const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+      window.open(twitterUrl, '_blank', 'width=600,height=400');
+    }
+    
+    // Hide game over modal and show start screen
+    this.elements.overlayGameOver?.classList.add('hidden');
+    this.elements.overlayStart?.classList.remove('hidden');
   }
   
   saveScore(e) {
@@ -230,8 +289,8 @@ class UIManager {
     this.elements.overlayGameOver?.classList.add('hidden');
     this.updateUI();
     
-    // Navigate to leaderboard
-    window.location.hash = '#leaderboard';
+    // Show start screen instead of navigating to leaderboard
+    this.elements.overlayStart?.classList.remove('hidden');
   }
   
   clearLeaderboard() {
