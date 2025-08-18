@@ -94,44 +94,18 @@ class UIManager {
   }
   
   setupNavigation() {
-    // Hash-based navigation with improved URL handling
+    // Hash-based navigation
     const activateSection = (hash) => {
-      // Clean up hash
-      const cleanHash = hash.replace('#', '');
-      const targetHash = cleanHash || 'home';
-      
       this.elements.sections.forEach(section => {
-        section.classList.toggle('active', section.id === targetHash);
+        section.classList.toggle('active', `#${section.id}` === hash);
       });
       
       this.elements.navLinks.forEach(link => {
-        const linkHash = link.getAttribute('href').replace('#', '');
-        link.classList.toggle('active', linkHash === targetHash);
+        link.classList.toggle('active', link.getAttribute('href') === hash);
       });
       
-      // Update page title based on section
-      const titles = {
-        'home': 'BirdBird — The Sky is the Limit!',
-        'leaderboard': 'Leaderboard — BirdBird',
-        'blog': 'Blog — BirdBird',
-        'about': 'About — BirdBird',
-        'privacy': 'Privacy Policy — BirdBird'
-      };
-      
-      document.title = titles[targetHash] || titles['home'];
-      
-      // Update meta description based on section
-      const descriptions = {
-        'home': 'Play BirdBird, the ultimate HTML5 flying game. Challenge yourself and soar to new heights!',
-        'leaderboard': 'Check out the top scores in BirdBird. Can you make it to the leaderboard?',
-        'blog': 'Tips, tricks, and strategies to master BirdBird and achieve higher scores.',
-        'about': 'Learn more about BirdBird, the addictive HTML5 web game.',
-        'privacy': 'Privacy policy for BirdBird game. Learn how we protect your data.'
-      };
-      
-      const metaDesc = document.querySelector('meta[name="description"]');
-      if (metaDesc) {
-        metaDesc.setAttribute('content', descriptions[targetHash] || descriptions['home']);
+      if (!hash || hash === '#home') {
+        history.replaceState(null, '', '#home');
       }
     };
     
@@ -139,19 +113,7 @@ class UIManager {
       activateSection(location.hash || '#home');
     });
     
-    // Handle direct navigation and page refresh
     activateSection(location.hash || '#home');
-    
-    // Smooth scrolling for better UX
-    this.elements.navLinks.forEach(link => {
-      link.addEventListener('click', (e) => {
-        const targetId = link.getAttribute('href').replace('#', '');
-        const targetElement = document.getElementById(targetId);
-        if (targetElement) {
-          targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      });
-    });
   }
   
   setupMobileMenu() {

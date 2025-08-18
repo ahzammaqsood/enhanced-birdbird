@@ -78,10 +78,6 @@
   cursor: pointer;
   transition: all var(--transition-fast);
   background: linear-gradient(180deg, #87CEEB 0%, #98D8E8 100%);
-  image-rendering: -moz-crisp-edges;
-  image-rendering: -webkit-crisp-edges;
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
 }
 
 .game-canvas:hover {

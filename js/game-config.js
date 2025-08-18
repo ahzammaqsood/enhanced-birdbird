@@ -33,8 +33,7 @@ const GameConfig = {
   // Performance settings
   PERFORMANCE: {
     TARGET_FPS: 60,
-    FRAME_TIME: 1000 / 60,
-    MAX_DELTA_TIME: 1000 / 30 // Prevent huge jumps if tab was inactive
+    FRAME_TIME: 1000 / 60
   },
   
   // Audio settings
@@ -53,9 +52,9 @@ const GameConfig = {
 
 // Game settings that can be modified by user
 const GameSettings = {
-  gameSpeed: 1.2,
+  gameSpeed: 1.0,
   soundEnabled: true,
-  difficulty: 'hard', // easy, normal, hard
+  difficulty: 'normal', // easy, normal, hard
   showFPS: false,
   
   // Load settings from localStorage
