@@ -93,39 +93,12 @@ class UIManager {
     this.elements.canvas.addEventListener('focus', () => {}, { once: true });
   }
   
-  
-setupNavigation() {
-    // SPA-style navigation (uses pushState to keep URLs clean). NOTE: your server must route these paths to index.html
-    const sections = Array.from(document.querySelectorAll('section[id]'));
-    const navLinks = Array.from(document.querySelectorAll('.main-nav .nav-link'));
-
-    const activateSection = (id) => {
-      sections.forEach(section => section.classList.toggle('active', section.id === id));
-      navLinks.forEach(link => link.classList.toggle('active', link.getAttribute('href') === ('#' + id)));
-    };
-
-    // Intercept navigation clicks and use pushState (no '#')
-    navLinks.forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const href = link.getAttribute('href') || '#home';
-        const id = (href.startsWith('#') ? href.slice(1) : href) || 'home';
-        activateSection(id);
-        try { history.pushState(null, '', id === 'home' ? '/' : '/' + id); } catch (err) { /* ignore */ }
-      }, { passive: true });
-    });
-
-    // Handle back/forward navigation
-    window.addEventListener('popstate', () => {
-      const path = window.location.pathname.replace(/^\//, '') || 'home';
-      activateSection(path);
-    });
-
-    // Activate initial section based on path (or default home)
-    const initial = window.location.pathname.replace(/^\//, '') || 'home';
-    activateSection(initial);
-  }
-);
+  setupNavigation() {
+    // Hash-based navigation
+    const activateSection = (hash) => {
+      this.elements.sections.forEach(section => {
+        section.classList.toggle('active', `#${section.id}` === hash);
+      });
       
       this.elements.navLinks.forEach(link => {
         link.classList.toggle('active', link.getAttribute('href') === hash);
