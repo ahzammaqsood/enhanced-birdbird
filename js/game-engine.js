@@ -1,4 +1,4 @@
-// Game Engine - Core game logic and rendering
+// Game Engine - BirdBird 2.6 - Optimized and Error-Free
 class GameEngine {
   constructor(canvas) {
     this.canvas = canvas;
@@ -47,7 +47,7 @@ class GameEngine {
       loadedCount++;
       if (loadedCount === totalAssets) {
         this.assetsLoaded = true;
-        console.log('All assets loaded');
+        console.log('All assets loaded successfully');
       }
     };
     
@@ -59,6 +59,7 @@ class GameEngine {
       }
     };
     
+    // Set up event handlers
     this.assets.bird.onload = onAssetLoad;
     this.assets.bird.onerror = () => onAssetError('bird');
     this.assets.pipe.onload = onAssetLoad;
@@ -66,10 +67,10 @@ class GameEngine {
     this.assets.background.onload = onAssetLoad;
     this.assets.background.onerror = () => onAssetError('background');
     
-    // Use the available custom images
+    // Load assets
     this.assets.bird.src = 'assets/images/bird.png';
-    this.assets.pipe.src = 'assets/pipe1.png'; // Use the custom pipe from assets root
-    this.assets.background.src = 'assets/background2.png'; // Use the custom background from assets root
+    this.assets.pipe.src = 'assets/pipe1.png';
+    this.assets.background.src = 'assets/background2.png';
   }
   
   setupCanvas() {
@@ -89,9 +90,30 @@ class GameEngine {
   }
   
   setupInputHandlers() {
-    // Mouse/Touch events
+    // Enhanced touch handling for all devices
+    let touchStartTime = 0;
+    let touchProcessed = false;
+    let lastTouchTime = 0;
+    
     const handleInput = (e) => {
       e.preventDefault();
+      e.stopPropagation();
+      
+      const now = Date.now();
+      
+      // Prevent rapid fire inputs
+      if (now - lastTouchTime < 100) return;
+      lastTouchTime = now;
+      
+      // Prevent double processing
+      if (touchProcessed) return;
+      touchProcessed = true;
+      
+      // Reset flag after a short delay
+      setTimeout(() => {
+        touchProcessed = false;
+      }, 150);
+      
       if (this.state === 'playing') {
         this.flap();
       } else if (this.state === 'start') {
@@ -100,12 +122,30 @@ class GameEngine {
     };
     
     // Mouse events
-    this.canvas.addEventListener('click', handleInput);
+    this.canvas.addEventListener('click', handleInput, { passive: false });
     
-    // Touch events with proper handling for iOS
-    this.canvas.addEventListener('touchstart', handleInput, { passive: false });
-    this.canvas.addEventListener('touchend', (e) => e.preventDefault(), { passive: false });
-    this.canvas.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+    // Enhanced touch events for all mobile devices
+    this.canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      touchStartTime = Date.now();
+      handleInput(e);
+    }, { passive: false });
+    
+    this.canvas.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    }, { passive: false });
+    
+    this.canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    }, { passive: false });
+    
+    // Prevent context menu on long press
+    this.canvas.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+    });
     
     // Keyboard events
     document.addEventListener('keydown', (e) => {
@@ -118,21 +158,47 @@ class GameEngine {
         }
       }
     });
+    
+    // Prevent iOS bounce effect and zoom
+    document.addEventListener('touchmove', (e) => {
+      if (e.target === this.canvas || e.target.closest('.game-container')) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+    
+    // Prevent double-tap zoom
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', (e) => {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 300) {
+        e.preventDefault();
+      }
+      lastTouchEnd = now;
+    }, false);
   }
   
   fitCanvas() {
     const container = this.canvas.parentElement;
+    if (!container) return;
+    
     const containerRect = container.getBoundingClientRect();
     const aspectRatio = GameConfig.CANVAS_WIDTH / GameConfig.CANVAS_HEIGHT;
     
-    let width = Math.min(containerRect.width - 24, 400); // Max width 400px
+    // Calculate optimal size based on container and screen
+    let width = Math.min(containerRect.width - 32, 400);
     let height = width / aspectRatio;
     
-    // Ensure it fits in viewport
-    const maxHeight = window.innerHeight * 0.7;
+    // Ensure it fits in viewport with proper mobile spacing
+    const maxHeight = window.innerHeight * 0.65;
     if (height > maxHeight) {
       height = maxHeight;
       width = height * aspectRatio;
+    }
+    
+    // Minimum size for very small screens
+    if (width < 280) {
+      width = 280;
+      height = width / aspectRatio;
     }
     
     this.canvas.style.width = width + 'px';
@@ -213,9 +279,12 @@ class GameEngine {
     
     const deltaTime = currentTime - this.lastFrameTime;
     
-    // Cap frame rate
+    // Optimized frame rate control
     if (deltaTime >= GameConfig.PERFORMANCE.FRAME_TIME) {
-      this.update(deltaTime);
+      // Cap delta time to prevent large jumps
+      const cappedDelta = Math.min(deltaTime, GameConfig.PERFORMANCE.MAX_DELTA_TIME);
+      
+      this.update(cappedDelta);
       this.render();
       
       this.lastFrameTime = currentTime;
@@ -235,24 +304,26 @@ class GameEngine {
   
   update(deltaTime) {
     const speedMultiplier = GameSettings.gameSpeed;
-    const dt = Math.min(deltaTime / 16.67, 2); // Cap delta time
+    const dt = deltaTime / 16.67; // Normalize to 60fps
+    const difficulty = GameSettings.getCurrentDifficulty(); // Fixed: Use method instead of direct access
     
     // Update bird physics
     this.bird.velocity += GameConfig.BIRD.GRAVITY * speedMultiplier * dt;
+    this.bird.velocity = Math.min(this.bird.velocity, GameConfig.BIRD.MAX_VELOCITY);
     this.bird.y += this.bird.velocity * speedMultiplier * dt;
     
     // Update bird rotation based on velocity
     this.bird.rotation = Math.max(-0.5, Math.min(0.5, this.bird.velocity * 0.05));
     
     // Spawn pipes
-    if (this.frame % Math.floor(120 / speedMultiplier) === 0) {
+    if (this.frame % Math.floor(difficulty.spawnRate / speedMultiplier) === 0) {
       this.spawnPipe();
     }
     
     // Update pipes
     for (let i = this.pipes.length - 1; i >= 0; i--) {
       const pipe = this.pipes[i];
-      pipe.x -= GameConfig.PIPE.BASE_SPEED * speedMultiplier * dt;
+      pipe.x -= difficulty.speed * speedMultiplier * dt;
       
       // Check for scoring
       if (!pipe.scored && pipe.x + GameConfig.PIPE.WIDTH < this.bird.x) {
@@ -303,14 +374,15 @@ class GameEngine {
   }
   
   spawnPipe() {
+    const difficulty = GameSettings.getCurrentDifficulty(); // Fixed: Use method
     const minY = 50;
-    const maxY = GameConfig.CANVAS_HEIGHT - GameConfig.PIPE.GAP - 100;
+    const maxY = GameConfig.CANVAS_HEIGHT - difficulty.pipeGap - 100;
     const gapY = minY + Math.random() * (maxY - minY);
     
     this.pipes.push({
       x: GameConfig.CANVAS_WIDTH,
       topHeight: gapY,
-      bottomY: gapY + GameConfig.PIPE.GAP,
+      bottomY: gapY + difficulty.pipeGap,
       scored: false
     });
   }
@@ -328,13 +400,13 @@ class GameEngine {
       return;
     }
     
-    // Pipe collision
+    // Pipe collision with improved hitbox
     for (const pipe of this.pipes) {
-      if (this.bird.x + GameConfig.BIRD.WIDTH > pipe.x && 
-          this.bird.x < pipe.x + GameConfig.PIPE.WIDTH) {
+      if (this.bird.x + GameConfig.BIRD.WIDTH - 6 > pipe.x && 
+          this.bird.x + 6 < pipe.x + GameConfig.PIPE.WIDTH) {
         
-        if (this.bird.y < pipe.topHeight || 
-            this.bird.y + GameConfig.BIRD.HEIGHT > pipe.bottomY) {
+        if (this.bird.y + 4 < pipe.topHeight || 
+            this.bird.y + GameConfig.BIRD.HEIGHT - 4 > pipe.bottomY) {
           this.gameOver();
           return;
         }
@@ -372,14 +444,14 @@ class GameEngine {
   }
   
   createExplosion(x, y) {
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 12; i++) {
       this.particles.push({
         x: x,
         y: y,
-        vx: (Math.random() - 0.5) * 10,
-        vy: (Math.random() - 0.5) * 10,
+        vx: (Math.random() - 0.5) * 12,
+        vy: (Math.random() - 0.5) * 12,
         life: 1,
-        color: `hsl(${Math.random() * 60 + 15}, 100%, 50%)`
+        color: `hsl(${Math.random() * 60 + 15}, 100%, ${50 + Math.random() * 30}%)`
       });
     }
   }
@@ -428,120 +500,110 @@ class GameEngine {
   }
   
   renderLoading() {
-    this.ctx.fillStyle = '#87CEEB';
+    // Dark theme loading screen
+    const gradient = this.ctx.createLinearGradient(0, 0, 0, GameConfig.CANVAS_HEIGHT);
+    gradient.addColorStop(0, '#667eea');
+    gradient.addColorStop(1, '#764ba2');
+    this.ctx.fillStyle = gradient;
     this.ctx.fillRect(0, 0, GameConfig.CANVAS_WIDTH, GameConfig.CANVAS_HEIGHT);
     
-    this.ctx.fillStyle = '#000';
-    this.ctx.font = '20px Arial';
+    this.ctx.fillStyle = '#ffffff';
+    this.ctx.font = 'bold 20px Arial';
     this.ctx.textAlign = 'center';
     this.ctx.fillText('Loading...', GameConfig.CANVAS_WIDTH/2, GameConfig.CANVAS_HEIGHT/2);
   }
   
   renderBackground() {
-    // Try to use custom background image first
-    if (this.assets.background.complete && this.assets.background.naturalWidth) {
-      // Draw the custom background image
-      this.ctx.drawImage(
-        this.assets.background,
-        0, 0,
-        GameConfig.CANVAS_WIDTH,
-        GameConfig.CANVAS_HEIGHT
-      );
-    } else {
-      // Fallback to gradient background
-      const gradient = this.ctx.createLinearGradient(0, 0, 0, GameConfig.CANVAS_HEIGHT);
-      gradient.addColorStop(0, '#87CEEB');
-      gradient.addColorStop(1, '#98D8E8');
-      this.ctx.fillStyle = gradient;
-      this.ctx.fillRect(0, 0, GameConfig.CANVAS_WIDTH, GameConfig.CANVAS_HEIGHT);
-      
-      // Clouds (simple)
-      this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-      for (let i = 0; i < 3; i++) {
-        const x = (this.frame * 0.2 + i * 120) % (GameConfig.CANVAS_WIDTH + 60) - 30;
-        const y = 50 + i * 30;
-        this.ctx.beginPath();
-        this.ctx.arc(x, y, 15, 0, Math.PI * 2);
-        this.ctx.arc(x + 15, y, 20, 0, Math.PI * 2);
-        this.ctx.arc(x + 30, y, 15, 0, Math.PI * 2);
-        this.ctx.fill();
-      }
+    // Enhanced dark theme gradient background
+    const gradient = this.ctx.createLinearGradient(0, 0, 0, GameConfig.CANVAS_HEIGHT);
+    gradient.addColorStop(0, '#667eea');
+    gradient.addColorStop(0.3, '#764ba2');
+    gradient.addColorStop(0.7, '#2d1b69');
+    gradient.addColorStop(1, '#1a1a2e');
+    this.ctx.fillStyle = gradient;
+    this.ctx.fillRect(0, 0, GameConfig.CANVAS_WIDTH, GameConfig.CANVAS_HEIGHT);
+    
+    // Animated stars effect
+    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    for (let i = 0; i < 25; i++) {
+      const x = (this.frame * 0.1 + i * 50) % (GameConfig.CANVAS_WIDTH + 20) - 10;
+      const y = 30 + (i * 37) % (GameConfig.CANVAS_HEIGHT - 100);
+      const size = 0.5 + Math.sin(this.frame * 0.02 + i) * 0.5;
+      this.ctx.beginPath();
+      this.ctx.arc(x, y, size, 0, Math.PI * 2);
+      this.ctx.fill();
     }
   }
   
   renderPipes() {
     for (const pipe of this.pipes) {
-      if (this.assets.pipe.complete && this.assets.pipe.naturalWidth) {
-        // Use custom pipe image
-        const pipeWidth = GameConfig.PIPE.WIDTH;
-        const pipeHeight = this.assets.pipe.height;
-        
-        // Top pipe (flipped)
-        this.ctx.save();
-        this.ctx.translate(pipe.x + pipeWidth / 2, pipe.topHeight);
-        this.ctx.scale(1, -1);
-        this.ctx.drawImage(
-          this.assets.pipe,
-          -pipeWidth / 2, 0,
-          pipeWidth, pipe.topHeight
-        );
-        this.ctx.restore();
-        
-        // Bottom pipe
-        this.ctx.drawImage(
-          this.assets.pipe,
-          pipe.x, pipe.bottomY,
-          pipeWidth, GameConfig.CANVAS_HEIGHT - pipe.bottomY - 50
-        );
-      } else {
-        // Fallback to colored rectangles
-        this.ctx.fillStyle = '#228B22';
-        
-        // Top pipe
-        this.ctx.fillRect(pipe.x, 0, GameConfig.PIPE.WIDTH, pipe.topHeight);
-        
-        // Bottom pipe
-        this.ctx.fillRect(pipe.x, pipe.bottomY, GameConfig.PIPE.WIDTH, 
-                         GameConfig.CANVAS_HEIGHT - pipe.bottomY - 50);
-        
-        // Pipe caps
-        this.ctx.fillStyle = '#32CD32';
-        this.ctx.fillRect(pipe.x - 5, pipe.topHeight - 20, GameConfig.PIPE.WIDTH + 10, 20);
-        this.ctx.fillRect(pipe.x - 5, pipe.bottomY, GameConfig.PIPE.WIDTH + 10, 20);
-        this.ctx.fillStyle = '#228B22';
-      }
+      // Enhanced dark theme pipe colors
+      this.ctx.fillStyle = '#2d4a22';
+      this.ctx.strokeStyle = '#1a2e15';
+      this.ctx.lineWidth = 2;
+      
+      // Top pipe
+      this.ctx.fillRect(pipe.x, 0, GameConfig.PIPE.WIDTH, pipe.topHeight);
+      this.ctx.strokeRect(pipe.x, 0, GameConfig.PIPE.WIDTH, pipe.topHeight);
+      
+      // Bottom pipe
+      this.ctx.fillRect(pipe.x, pipe.bottomY, GameConfig.PIPE.WIDTH, GameConfig.CANVAS_HEIGHT - pipe.bottomY - 50);
+      this.ctx.strokeRect(pipe.x, pipe.bottomY, GameConfig.PIPE.WIDTH, GameConfig.CANVAS_HEIGHT - pipe.bottomY - 50);
+      
+      // Pipe caps with gradient
+      const capGradient = this.ctx.createLinearGradient(pipe.x, 0, pipe.x + GameConfig.PIPE.WIDTH, 0);
+      capGradient.addColorStop(0, '#3d5a32');
+      capGradient.addColorStop(0.5, '#4d6a42');
+      capGradient.addColorStop(1, '#3d5a32');
+      this.ctx.fillStyle = capGradient;
+      
+      this.ctx.fillRect(pipe.x - 4, pipe.topHeight - 20, GameConfig.PIPE.WIDTH + 8, 20);
+      this.ctx.fillRect(pipe.x - 4, pipe.bottomY, GameConfig.PIPE.WIDTH + 8, 20);
     }
   }
   
   renderBird() {
     this.ctx.save();
     
-    // Move to bird center for rotation
+    // Move to bird position
     this.ctx.translate(this.bird.x + GameConfig.BIRD.WIDTH/2, this.bird.y + GameConfig.BIRD.HEIGHT/2);
     this.ctx.rotate(this.bird.rotation);
     
     if (this.assets.bird.complete && this.assets.bird.naturalWidth) {
-      // Use custom bird image
+      // Draw bird image
       this.ctx.drawImage(
         this.assets.bird,
-        -GameConfig.BIRD.WIDTH/2,
-        -GameConfig.BIRD.HEIGHT/2,
-        GameConfig.BIRD.WIDTH,
-        GameConfig.BIRD.HEIGHT
+        -GameConfig.BIRD.WIDTH/2, -GameConfig.BIRD.HEIGHT/2,
+        GameConfig.BIRD.WIDTH, GameConfig.BIRD.HEIGHT
       );
     } else {
-      // Fallback to colored rectangle
-      this.ctx.fillStyle = '#FFD700';
-      this.ctx.fillRect(-GameConfig.BIRD.WIDTH/2, -GameConfig.BIRD.HEIGHT/2, 
-                       GameConfig.BIRD.WIDTH, GameConfig.BIRD.HEIGHT);
+      // Enhanced fallback bird
+      const birdGradient = this.ctx.createRadialGradient(0, 0, 0, 0, 0, GameConfig.BIRD.WIDTH/2);
+      birdGradient.addColorStop(0, '#ffeb3b');
+      birdGradient.addColorStop(1, '#ff9800');
+      this.ctx.fillStyle = birdGradient;
+      this.ctx.strokeStyle = '#e65100';
+      this.ctx.lineWidth = 2;
+      
+      // Bird body
+      this.ctx.beginPath();
+      this.ctx.ellipse(0, 0, GameConfig.BIRD.WIDTH/2, GameConfig.BIRD.HEIGHT/2, 0, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.stroke();
       
       // Bird eye
       this.ctx.fillStyle = '#000';
-      this.ctx.fillRect(-GameConfig.BIRD.WIDTH/2 + 8, -GameConfig.BIRD.HEIGHT/2 + 2, 4, 4);
+      this.ctx.beginPath();
+      this.ctx.arc(5, -3, 3, 0, Math.PI * 2);
+      this.ctx.fill();
       
       // Bird beak
-      this.ctx.fillStyle = '#FF8C00';
-      this.ctx.fillRect(GameConfig.BIRD.WIDTH/2 - 2, -2, 6, 4);
+      this.ctx.fillStyle = '#ff5722';
+      this.ctx.beginPath();
+      this.ctx.moveTo(GameConfig.BIRD.WIDTH/2, 0);
+      this.ctx.lineTo(GameConfig.BIRD.WIDTH/2 + 8, 2);
+      this.ctx.lineTo(GameConfig.BIRD.WIDTH/2, 4);
+      this.ctx.fill();
     }
     
     this.ctx.restore();
@@ -552,56 +614,54 @@ class GameEngine {
       this.ctx.save();
       this.ctx.globalAlpha = particle.life;
       this.ctx.fillStyle = particle.color;
-      this.ctx.fillRect(particle.x - 2, particle.y - 2, 4, 4);
+      this.ctx.beginPath();
+      this.ctx.arc(particle.x, particle.y, 2 + particle.life, 0, Math.PI * 2);
+      this.ctx.fill();
       this.ctx.restore();
     }
   }
   
   renderGround() {
-    this.ctx.fillStyle = '#8B4513';
-    this.ctx.fillRect(0, GameConfig.CANVAS_HEIGHT - 50, 
-                     GameConfig.CANVAS_WIDTH, 50);
+    // Enhanced dark theme ground
+    const groundHeight = 50;
+    const gradient = this.ctx.createLinearGradient(0, GameConfig.CANVAS_HEIGHT - groundHeight, 0, GameConfig.CANVAS_HEIGHT);
+    gradient.addColorStop(0, '#2d5016');
+    gradient.addColorStop(0.5, '#1a2e0c');
+    gradient.addColorStop(1, '#0f1a06');
     
-    // Grass
-    this.ctx.fillStyle = '#228B22';
-    this.ctx.fillRect(0, GameConfig.CANVAS_HEIGHT - 50, 
-                     GameConfig.CANVAS_WIDTH, 5);
+    this.ctx.fillStyle = gradient;
+    this.ctx.fillRect(0, GameConfig.CANVAS_HEIGHT - groundHeight, GameConfig.CANVAS_WIDTH, groundHeight);
+    
+    // Ground texture
+    this.ctx.strokeStyle = '#3d6026';
+    this.ctx.lineWidth = 1;
+    for (let i = 0; i < GameConfig.CANVAS_WIDTH; i += 20) {
+      this.ctx.beginPath();
+      this.ctx.moveTo(i, GameConfig.CANVAS_HEIGHT - groundHeight);
+      this.ctx.lineTo(i, GameConfig.CANVAS_HEIGHT);
+      this.ctx.stroke();
+    }
   }
   
   renderScore() {
-    this.ctx.save();
-    this.ctx.font = 'bold 24px system-ui, -apple-system, sans-serif';
-    this.ctx.textAlign = 'center';
-    this.ctx.lineWidth = 4;
-    this.ctx.strokeStyle = '#000';
-    this.ctx.fillStyle = '#FFF';
-    
-    const x = GameConfig.CANVAS_WIDTH / 2;
-    const y = 50;
-    
-    this.ctx.strokeText(String(this.score), x, y);
-    this.ctx.fillText(String(this.score), x, y);
-    this.ctx.restore();
+    if (this.state === 'playing') {
+      this.ctx.fillStyle = '#ffffff';
+      this.ctx.strokeStyle = '#000000';
+      this.ctx.lineWidth = 4;
+      this.ctx.font = 'bold 36px Arial';
+      this.ctx.textAlign = 'center';
+      
+      const scoreText = this.score.toString();
+      this.ctx.strokeText(scoreText, GameConfig.CANVAS_WIDTH/2, 60);
+      this.ctx.fillText(scoreText, GameConfig.CANVAS_WIDTH/2, 60);
+    }
   }
   
   renderFPS() {
-    this.ctx.fillStyle = '#000';
-    this.ctx.font = '12px monospace';
+    this.ctx.fillStyle = '#64ffda';
+    this.ctx.font = '14px Arial';
     this.ctx.textAlign = 'left';
     this.ctx.fillText(`FPS: ${this.fps}`, 10, 20);
-  }
-  
-  // Public API
-  getState() {
-    return this.state;
-  }
-  
-  getScore() {
-    return this.score;
-  }
-  
-  getHighScore() {
-    return this.highScore;
   }
 }
 

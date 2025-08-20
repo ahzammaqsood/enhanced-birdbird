@@ -1,122 +1,130 @@
-// Game Configuration and Constants
+// Game Configuration - BirdBird 2.6 - Fixed and Optimized
 const GameConfig = {
-  // Canvas settings
+  // Canvas dimensions
   CANVAS_WIDTH: 320,
   CANVAS_HEIGHT: 480,
   
-  // Bird settings
+  // Bird properties
   BIRD: {
-    X: 50,
-    WIDTH: 24,
-    HEIGHT: 21,
-    GRAVITY: 0.2,
-    JUMP_FORCE: -4,
-    START_Y: 150
+    X: 80,
+    Y: 240,
+    START_Y: 240,
+    WIDTH: 34,
+    HEIGHT: 24,
+    GRAVITY: 0.4,
+    JUMP_FORCE: -6,
+    MAX_VELOCITY: 15
   },
   
-  // Pipe settings
+  // Pipe properties
   PIPE: {
-    WIDTH: 50,
+    WIDTH: 52,
     GAP: 120,
-    SPAWN_INTERVAL: 120, // frames
-    BASE_SPEED: 1.5,
-    MIN_TOP: 50,
-    MAX_TOP_OFFSET: 50
+    BASE_SPEED: 2,
+    SPAWN_RATE: 90
   },
   
-  // Game mechanics
-  DIFFICULTY: {
-    SPEED_INCREASE_PER_SCORE: 10, // every 10 points, speed increases
-    MAX_SPEED_MULTIPLIER: 3
-  },
-  
-  // Performance settings
+  // Performance settings optimized for all devices
   PERFORMANCE: {
     TARGET_FPS: 60,
-    FRAME_TIME: 1000 / 60
-  },
-  
-  // Audio settings
-  AUDIO: {
-    ENABLED: true,
-    VOLUME: 0.5
+    FRAME_TIME: 1000 / 60, // 16.67ms
+    MAX_DELTA_TIME: 32, // Cap delta time to prevent large jumps
+    ENABLE_VSYNC: true
   },
   
   // Storage keys
   STORAGE: {
-    HIGH_SCORE: 'birdbird_high_score',
-    LEADERBOARD: 'birdbird_leaderboard',
-    SETTINGS: 'birdbird_settings'
+    HIGH_SCORE: 'birdbird-high-score-v26',
+    SETTINGS: 'birdbird-settings-v26',
+    LEADERBOARD: 'birdbird-leaderboard-v26'
+  },
+  
+  // Audio settings
+  AUDIO: {
+    VOLUME: 0.5,
+    ENABLED: true
+  },
+  
+  // Difficulty settings - Fixed structure
+  DIFFICULTY: {
+    easy: {
+      pipeGap: 140,
+      speed: 1.5,
+      spawnRate: 100
+    },
+    normal: {
+      pipeGap: 120,
+      speed: 2,
+      spawnRate: 90
+    },
+    hard: {
+      pipeGap: 100,
+      speed: 2.5,
+      spawnRate: 80
+    }
   }
 };
 
-// Game settings that can be modified by user
+// Game Settings - User configurable with proper defaults
 const GameSettings = {
-  gameSpeed: 1.4,          // default ab 1.4
+  gameSpeed: 1.0,
   soundEnabled: true,
-  difficulty: 'normal',    // default normal
+  difficulty: 'normal',
   showFPS: false,
-
+  
   // Load settings from localStorage
   load() {
     try {
       const saved = localStorage.getItem(GameConfig.STORAGE.SETTINGS);
       if (saved) {
         const settings = JSON.parse(saved);
-        Object.assign(this, settings);
+        // Ensure all properties exist with defaults
+        this.gameSpeed = settings.gameSpeed || 1.0;
+        this.soundEnabled = settings.soundEnabled !== undefined ? settings.soundEnabled : true;
+        this.difficulty = settings.difficulty || 'normal';
+        this.showFPS = settings.showFPS || false;
+        
+        // Validate difficulty exists
+        if (!GameConfig.DIFFICULTY[this.difficulty]) {
+          this.difficulty = 'normal';
+        }
       }
     } catch (e) {
-      console.warn('Failed to load game settings:', e);
+      console.warn('Failed to load settings:', e);
+      this.reset();
     }
   },
-
+  
   // Save settings to localStorage
   save() {
     try {
-      localStorage.setItem(GameConfig.STORAGE.SETTINGS, JSON.stringify({
+      const settings = {
         gameSpeed: this.gameSpeed,
         soundEnabled: this.soundEnabled,
         difficulty: this.difficulty,
         showFPS: this.showFPS
-      }));
+      };
+      localStorage.setItem(GameConfig.STORAGE.SETTINGS, JSON.stringify(settings));
     } catch (e) {
-      console.warn('Failed to save game settings:', e);
+      console.warn('Failed to save settings:', e);
     }
   },
-
-  // 🔹 Reset settings to default values
+  
+  // Reset to defaults
   reset() {
-    this.gameSpeed = 1.4;
+    this.gameSpeed = 1.0;
     this.soundEnabled = true;
     this.difficulty = 'normal';
     this.showFPS = false;
-    this.save();           // save after reset
-    this.applyDifficulty();// apply difficulty defaults again
+    this.save();
   },
-
-  // Apply difficulty settings
-  applyDifficulty() {
-    switch (this.difficulty) {
-      case 'easy':
-        GameConfig.BIRD.GRAVITY = 0.15;
-        GameConfig.PIPE.GAP = 1.4;
-        GameConfig.PIPE.BASE_SPEED = 1.2;
-        break;
-      case 'hard':
-        GameConfig.BIRD.GRAVITY = 0.25;
-        GameConfig.PIPE.GAP = 100;
-        GameConfig.PIPE.BASE_SPEED = 1.8;
-        break;
-      default: // normal
-        GameConfig.BIRD.GRAVITY = 0.2;
-        GameConfig.PIPE.GAP = 120;
-        GameConfig.PIPE.BASE_SPEED = 1.5;
-        this.gameSpeed = 1.4; // ensure reset works here also
-    }
+  
+  // Get current difficulty settings
+  getCurrentDifficulty() {
+    return GameConfig.DIFFICULTY[this.difficulty] || GameConfig.DIFFICULTY.normal;
   }
 };
 
-// Initialize settings
+// Load settings on initialization
 GameSettings.load();
-GameSettings.applyDifficulty();
 

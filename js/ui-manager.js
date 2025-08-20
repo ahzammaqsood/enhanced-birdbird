@@ -1,432 +1,448 @@
-// UI Manager - Handles all user interface interactions
+// UI Manager - BirdBird 2.6 - Enhanced and Responsive
 class UIManager {
   constructor(gameEngine, audioManager, leaderboardManager) {
-    this.game = gameEngine;
-    this.audio = audioManager;
-    this.leaderboard = leaderboardManager;
+    this.gameEngine = gameEngine;
+    this.audioManager = audioManager;
+    this.leaderboardManager = leaderboardManager;
     
-    this.elements = this.getElements();
-    this.setupEventListeners();
-    this.setupNavigation();
-    this.setupMobileMenu();
-    this.updateUI();
-    this.loadStatistics();
+    this.init();
   }
   
-  getElements() {
-    return {
-      // Game elements
-      canvas: document.getElementById('gameCanvas'),
-      overlayStart: document.getElementById('overlayStart'),
-      overlayGameOver: document.getElementById('overlayGameOver'),
-      overlaySettings: document.getElementById('overlaySettings'),
-      
-      // Buttons
-      btnStart: document.getElementById('btnStart'),
-      btnRestart: document.getElementById('btnRestart'),
-      btnSettings: document.getElementById('btnSettings'),
-      btnSettings2: document.getElementById('btnSettings2'),
-      btnCloseSettings: document.getElementById('btnCloseSettings'),
-      btnResetSettings: document.getElementById('btnResetSettings'),
-      
-      // Score elements
-      scoreDisplay: document.getElementById('score'),
-      highScoreDisplay: document.getElementById('highScore'),
-      finalScoreDisplay: document.getElementById('finalScore'),
-      finalHighScoreDisplay: document.getElementById('finalHighScore'),
-      
-      // Leaderboard
-      leaderboardBody: document.getElementById('leaderboardBody'),
-      clearBoardBtn: document.getElementById('clearBoard'),
-      saveScoreForm: document.getElementById('saveScoreForm'),
-      playerNameInput: document.getElementById('playerName'),
-      
-      // Settings
-      gameSpeedSlider: document.getElementById('gameSpeed'),
-      gameSpeedValue: document.getElementById('gameSpeedValue'),
-      soundToggle: document.getElementById('soundToggle'),
-      difficultySelect: document.getElementById('difficulty'),
-      showFpsToggle: document.getElementById('showFps'),
-      
-      // Navigation
-      navLinks: document.querySelectorAll('.nav-link'),
-      sections: document.querySelectorAll('.section'),
-      
-      // Mobile menu
-      hamburger: document.querySelector('.hamburger'),
-      mobileDrawer: document.getElementById('mobileDrawer'),
-      drawerClose: document.querySelector('.drawer-close'),
-      
-      // Statistics
-      totalGamesPlayed: document.getElementById('totalGamesPlayed'),
-      totalScore: document.getElementById('totalScore'),
-      averageScore: document.getElementById('averageScore'),
-      bestStreak: document.getElementById('bestStreak')
-    };
+  init() {
+    this.setupEventListeners();
+    this.updateUI();
+    this.leaderboardManager.updateDisplay();
+    this.loadSettings();
+    this.setupResponsiveHandlers();
   }
   
   setupEventListeners() {
-    // Game controls
-    this.elements.btnStart?.addEventListener('click', () => this.startGame());
-    this.elements.btnRestart?.addEventListener('click', () => this.startGame());
-    this.elements.btnSettings?.addEventListener('click', () => this.showSettings());
-    this.elements.btnSettings2?.addEventListener('click', () => this.showSettings());
-    this.elements.btnCloseSettings?.addEventListener('click', () => this.hideSettings());
-    this.elements.btnResetSettings?.addEventListener('click', () => this.resetSettings());
+    // Start game button
+    const btnStart = document.getElementById('btnStart');
+    if (btnStart) {
+      btnStart.addEventListener('click', () => {
+        this.audioManager.initializeAudioContext();
+        this.gameEngine.startGame();
+      });
+    }
     
-    // Input controls
-    this.elements.canvas?.addEventListener('pointerdown', (e) => this.handlePointerInput(e));
-    window.addEventListener('keydown', (e) => this.handleKeyInput(e));
+    // Settings button
+    const btnSettings = document.getElementById('btnSettings');
+    if (btnSettings) {
+      btnSettings.addEventListener('click', () => {
+        this.showSettings();
+      });
+    }
     
-    // Leaderboard
-    this.elements.clearBoardBtn?.addEventListener('click', () => this.clearLeaderboard());
-    this.elements.saveScoreForm?.addEventListener('submit', (e) => this.saveScore(e));
+    // Restart button
+    const btnRestart = document.getElementById('btnRestart');
+    if (btnRestart) {
+      btnRestart.addEventListener('click', () => {
+        this.hideGameOver();
+        this.gameEngine.startGame();
+      });
+    }
     
-    // Settings
-    this.elements.gameSpeedSlider?.addEventListener('input', (e) => this.updateGameSpeed(e));
-    this.elements.soundToggle?.addEventListener('change', (e) => this.toggleSound(e));
-    this.elements.difficultySelect?.addEventListener('change', (e) => this.changeDifficulty(e));
-    this.elements.showFpsToggle?.addEventListener('change', (e) => this.toggleFPS(e));
+    // Back to menu button
+    const btnBackToMenu = document.getElementById('btnBackToMenu');
+    if (btnBackToMenu) {
+      btnBackToMenu.addEventListener('click', () => {
+        this.hideGameOver();
+        this.showStart();
+      });
+    }
     
-    // Focus management
-    this.elements.canvas.tabIndex = 0;
-    this.elements.canvas.addEventListener('focus', () => {}, { once: true });
+    // Save score button
+    const btnSaveScore = document.getElementById('btnSaveScore');
+    if (btnSaveScore) {
+      btnSaveScore.addEventListener('click', () => {
+        this.saveScore();
+      });
+    }
+    
+    // Settings controls
+    this.setupSettingsControls();
+    
+    // Clear leaderboard button
+    const clearBoard = document.getElementById('clearBoard');
+    if (clearBoard) {
+      clearBoard.addEventListener('click', () => {
+        if (confirm('Are you sure you want to clear the leaderboard?')) {
+          this.leaderboardManager.clearScores();
+          this.showNotification('Leaderboard cleared!', 'success');
+        }
+      });
+    }
+    
+    // Mobile menu
+    this.setupMobileMenu();
+    
+    // Keyboard shortcuts
+    this.setupKeyboardShortcuts();
   }
   
-  setupNavigation() {
-    // Hash-based navigation
-    const activateSection = (hash) => {
-      this.elements.sections.forEach(section => {
-        section.classList.toggle('active', `#${section.id}` === hash);
+  setupSettingsControls() {
+    // Game speed slider
+    const gameSpeed = document.getElementById('gameSpeed');
+    const gameSpeedValue = document.getElementById('gameSpeedValue');
+    if (gameSpeed && gameSpeedValue) {
+      gameSpeed.addEventListener('input', (e) => {
+        const value = parseFloat(e.target.value);
+        GameSettings.gameSpeed = value;
+        gameSpeedValue.textContent = Math.round(value * 100) + '%';
+        GameSettings.save();
       });
-      
-      this.elements.navLinks.forEach(link => {
-        link.classList.toggle('active', link.getAttribute('href') === hash);
+    }
+    
+    // Sound toggle
+    const soundToggle = document.getElementById('soundToggle');
+    if (soundToggle) {
+      soundToggle.addEventListener('change', (e) => {
+        GameSettings.soundEnabled = e.target.checked;
+        this.audioManager.setEnabled(e.target.checked);
+        GameSettings.save();
+        
+        if (e.target.checked) {
+          this.audioManager.initializeAudioContext();
+          this.showNotification('Sound enabled', 'success');
+        } else {
+          this.showNotification('Sound disabled', 'info');
+        }
       });
-      
-      if (!hash || hash === '#home') {
-        history.replaceState(null, '', '#home');
-      }
-    };
+    }
     
-    window.addEventListener('hashchange', () => {
-      activateSection(location.hash || '#home');
-    });
+    // Difficulty select
+    const difficulty = document.getElementById('difficulty');
+    if (difficulty) {
+      difficulty.addEventListener('change', (e) => {
+        GameSettings.difficulty = e.target.value;
+        GameSettings.save();
+        this.showNotification(`Difficulty set to ${e.target.value}`, 'info');
+      });
+    }
     
-    activateSection(location.hash || '#home');
+    // Show FPS toggle
+    const showFps = document.getElementById('showFps');
+    if (showFps) {
+      showFps.addEventListener('change', (e) => {
+        GameSettings.showFPS = e.target.checked;
+        GameSettings.save();
+      });
+    }
+    
+    // Close settings button
+    const btnCloseSettings = document.getElementById('btnCloseSettings');
+    if (btnCloseSettings) {
+      btnCloseSettings.addEventListener('click', () => {
+        this.hideSettings();
+      });
+    }
+    
+    // Reset settings button
+    const btnResetSettings = document.getElementById('btnResetSettings');
+    if (btnResetSettings) {
+      btnResetSettings.addEventListener('click', () => {
+        if (confirm('Reset all settings to default?')) {
+          GameSettings.reset();
+          this.loadSettings();
+          this.showNotification('Settings reset to default', 'success');
+        }
+      });
+    }
   }
   
   setupMobileMenu() {
-    const toggleDrawer = (open) => {
-      this.elements.mobileDrawer?.setAttribute('aria-hidden', String(!open));
-      document.body.classList.toggle('no-scroll', open);
-      this.elements.hamburger?.setAttribute('aria-expanded', String(open));
-    };
+    const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+    const nav = document.querySelector('.nav');
     
-    this.elements.hamburger?.addEventListener('click', () => toggleDrawer(true));
-    this.elements.drawerClose?.addEventListener('click', () => toggleDrawer(false));
-    
-    this.elements.mobileDrawer?.addEventListener('click', (e) => {
-      if (e.target.closest('.nav-link')) {
-        toggleDrawer(false);
+    if (mobileMenuBtn && nav) {
+      mobileMenuBtn.addEventListener('click', () => {
+        const isVisible = nav.style.display === 'flex';
+        
+        if (isVisible) {
+          nav.style.display = 'none';
+        } else {
+          nav.style.display = 'flex';
+          nav.style.position = 'absolute';
+          nav.style.top = '100%';
+          nav.style.left = '0';
+          nav.style.right = '0';
+          nav.style.background = 'var(--bg-secondary)';
+          nav.style.flexDirection = 'column';
+          nav.style.padding = '1rem';
+          nav.style.borderTop = '1px solid var(--border-color)';
+          nav.style.zIndex = '1000';
+          nav.style.boxShadow = '0 10px 30px var(--shadow-color)';
+        }
+      });
+      
+      // Close menu when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.header-content')) {
+          nav.style.display = 'none';
+        }
+      });
+    }
+  }
+  
+  setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      // ESC to close modals
+      if (e.key === 'Escape') {
+        this.hideSettings();
+        this.hideGameOver();
+      }
+      
+      // Enter to start game or restart
+      if (e.key === 'Enter') {
+        if (this.gameEngine.state === 'start') {
+          this.gameEngine.startGame();
+        } else if (this.gameEngine.state === 'gameOver') {
+          this.hideGameOver();
+          this.gameEngine.startGame();
+        }
       }
     });
   }
   
-  handlePointerInput(e) {
-    e.preventDefault();
-    this.game.flap();
+  setupResponsiveHandlers() {
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      this.adjustModalSizes();
+    });
+    
+    // Handle orientation change
+    window.addEventListener('orientationchange', () => {
+      setTimeout(() => {
+        this.adjustModalSizes();
+        if (this.gameEngine) {
+          this.gameEngine.fitCanvas();
+        }
+      }, 100);
+    });
   }
   
-  handleKeyInput(e) {
-    if (e.code === 'Space' || e.key === ' ') {
-      e.preventDefault();
-      this.game.flap();
-    } else if (e.key === 'Escape') {
-      if (this.game.state === 'playing') {
-        this.pauseGame();
-      } else if (this.elements.overlaySettings && !this.elements.overlaySettings.classList.contains('hidden')) {
-        this.hideSettings();
+  adjustModalSizes() {
+    const modals = document.querySelectorAll('.overlay-content');
+    modals.forEach(modal => {
+      const rect = modal.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const viewportWidth = window.innerWidth;
+      
+      // Adjust for very small screens
+      if (viewportWidth < 400) {
+        modal.style.maxWidth = '95vw';
+        modal.style.padding = '1rem';
+      } else {
+        modal.style.maxWidth = '90vw';
+        modal.style.padding = '2rem';
       }
+      
+      // Adjust for very short screens
+      if (viewportHeight < 600) {
+        modal.style.maxHeight = '90vh';
+        modal.style.overflowY = 'auto';
+      }
+    });
+  }
+  
+  loadSettings() {
+    // Load game speed
+    const gameSpeed = document.getElementById('gameSpeed');
+    const gameSpeedValue = document.getElementById('gameSpeedValue');
+    if (gameSpeed && gameSpeedValue) {
+      gameSpeed.value = GameSettings.gameSpeed;
+      gameSpeedValue.textContent = Math.round(GameSettings.gameSpeed * 100) + '%';
     }
-  }
-  
-  startGame() {
-    this.hideAllOverlays();
-    this.game.startGame(); // Use startGame instead of reset
-    this.elements.canvas?.focus();
-  }
-  
-  pauseGame() {
-    this.game.pause();
-    this.showSettings();
-  }
-  
-  showSettings() {
-    this.elements.overlaySettings?.classList.remove('hidden');
-    this.loadSettingsUI();
-  }
-  
-  hideSettings() {
-    this.elements.overlaySettings?.classList.add('hidden');
-    if (this.game.state === 'paused') {
-      this.game.resume();
+    
+    // Load sound setting
+    const soundToggle = document.getElementById('soundToggle');
+    if (soundToggle) {
+      soundToggle.checked = GameSettings.soundEnabled;
     }
-  }
-  
-  hideAllOverlays() {
-    this.elements.overlayStart?.classList.add('hidden');
-    this.elements.overlayGameOver?.classList.add('hidden');
-    this.elements.overlaySettings?.classList.add('hidden');
+    
+    // Load difficulty
+    const difficulty = document.getElementById('difficulty');
+    if (difficulty) {
+      difficulty.value = GameSettings.difficulty;
+    }
+    
+    // Load FPS setting
+    const showFps = document.getElementById('showFps');
+    if (showFps) {
+      showFps.checked = GameSettings.showFPS;
+    }
   }
   
   updateUI() {
     // Update score displays
-    if (this.elements.scoreDisplay) {
-      this.elements.scoreDisplay.textContent = String(this.game.score);
+    const scoreElement = document.getElementById('score');
+    const highScoreElement = document.getElementById('highScore');
+    
+    if (scoreElement) {
+      scoreElement.textContent = this.gameEngine.score;
     }
     
-    if (this.elements.highScoreDisplay) {
-      this.elements.highScoreDisplay.textContent = String(this.game.highScore);
+    if (highScoreElement) {
+      highScoreElement.textContent = this.gameEngine.highScore;
     }
-    
-    // Update leaderboard
-    this.leaderboard.renderLeaderboard(this.elements.leaderboardBody);
+  }
+  
+  showStart() {
+    const startOverlay = document.getElementById('overlayStart');
+    if (startOverlay) {
+      startOverlay.classList.remove('hidden');
+    }
   }
   
   showGameOver() {
-    if (this.elements.finalScoreDisplay) {
-      this.elements.finalScoreDisplay.textContent = String(this.game.score);
+    const gameOverOverlay = document.getElementById('overlayGameOver');
+    const finalScore = document.getElementById('finalScore');
+    const finalHighScore = document.getElementById('finalHighScore');
+    
+    if (gameOverOverlay) {
+      gameOverOverlay.classList.remove('hidden');
     }
     
-    if (this.elements.finalHighScoreDisplay) {
-      this.elements.finalHighScoreDisplay.textContent = String(this.game.highScore);
+    if (finalScore) {
+      finalScore.textContent = this.gameEngine.score;
     }
     
-    // Smart leaderboard button logic - only show if new high score
-    const saveScoreForm = this.elements.saveScoreForm;
-    if (saveScoreForm) {
-      if (this.game.score > 0 && this.game.score >= this.game.highScore) {
-        saveScoreForm.style.display = 'block';
-      } else {
-        saveScoreForm.style.display = 'none';
-      }
+    if (finalHighScore) {
+      finalHighScore.textContent = this.gameEngine.highScore;
     }
     
-    // Add share button
-    this.addShareButton();
-    
-    this.elements.overlayGameOver?.classList.remove('hidden');
+    // Show rank information
+    const rank = this.leaderboardManager.getRank(this.gameEngine.score);
+    if (rank <= 10) {
+      this.showNotification(`You would rank #${rank} on the leaderboard!`, 'success');
+    }
     
     // Focus on name input if it's a high score
-    if (this.leaderboard.isHighScore(this.game.score)) {
+    if (this.leaderboardManager.isHighScore(this.gameEngine.score)) {
+      const playerName = document.getElementById('playerName');
+      if (playerName) {
+        setTimeout(() => {
+          playerName.focus();
+          playerName.select();
+        }, 500);
+      }
+    }
+  }
+  
+  hideGameOver() {
+    const gameOverOverlay = document.getElementById('overlayGameOver');
+    if (gameOverOverlay) {
+      gameOverOverlay.classList.add('hidden');
+    }
+    
+    // Clear player name input
+    const playerName = document.getElementById('playerName');
+    if (playerName) {
+      playerName.value = '';
+    }
+  }
+  
+  showSettings() {
+    const settingsOverlay = document.getElementById('overlaySettings');
+    if (settingsOverlay) {
+      settingsOverlay.classList.remove('hidden');
+    }
+  }
+  
+  hideSettings() {
+    const settingsOverlay = document.getElementById('overlaySettings');
+    if (settingsOverlay) {
+      settingsOverlay.classList.add('hidden');
+    }
+  }
+  
+  saveScore() {
+    const playerName = document.getElementById('playerName');
+    if (!playerName || !playerName.value.trim()) {
+      this.showNotification('Please enter your name to save the score.', 'warning');
+      if (playerName) playerName.focus();
+      return;
+    }
+    
+    const success = this.leaderboardManager.addScore(
+      playerName.value.trim(),
+      this.gameEngine.score
+    );
+    
+    if (success) {
+      this.showNotification('Score saved successfully!', 'success');
+      playerName.value = '';
+      
+      // Show updated rank
+      const rank = this.leaderboardManager.getRank(this.gameEngine.score);
       setTimeout(() => {
-        this.elements.playerNameInput?.focus();
-      }, 100);
-    }
-    
-    // Update statistics
-    this.updateStatistics();
-  }
-  
-  addShareButton() {
-    // Check if share button already exists
-    let shareButton = document.getElementById('btnShare');
-    if (!shareButton) {
-      shareButton = document.createElement('button');
-      shareButton.id = 'btnShare';
-      shareButton.className = 'btn secondary';
-      shareButton.textContent = 'Share Score';
-      shareButton.style.marginTop = '12px';
-      
-      shareButton.addEventListener('click', () => {
-        this.shareScore();
-      });
-      
-      // Insert before restart button
-      const restartButton = this.elements.btnRestart;
-      if (restartButton && restartButton.parentNode) {
-        const buttonContainer = restartButton.parentNode;
-        buttonContainer.insertBefore(shareButton, restartButton);
-      }
-    }
-  }
-  
-  shareScore() {
-    const score = this.game.score;
-    const text = `I just scored ${score} points in BirdBird! Can you beat my score?`;
-    const url = window.location.href;
-    
-    if (navigator.share) {
-      // Use native sharing if available
-      navigator.share({
-        title: 'BirdBird Score',
-        text: text,
-        url: url
-      }).catch(console.error);
+        this.showNotification(`You are now ranked #${rank}!`, 'info');
+      }, 1500);
     } else {
-      // Fallback to Twitter/X sharing
-      const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
-      window.open(twitterUrl, '_blank', 'width=600,height=400');
+      this.showNotification('Failed to save score. Please try again.', 'error');
     }
+  }
+  
+  showNotification(message, type = 'info', duration = 3000) {
+    // Remove existing notifications
+    const existingNotifications = document.querySelectorAll('.notification');
+    existingNotifications.forEach(notification => {
+      notification.remove();
+    });
     
-    // Hide game over modal and show start screen
-    this.elements.overlayGameOver?.classList.add('hidden');
-    this.elements.overlayStart?.classList.remove('hidden');
-  }
-  
-  saveScore(e) {
-    e.preventDefault();
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
     
-    const playerName = this.elements.playerNameInput?.value.trim() || 'Anonymous';
-    this.leaderboard.addScore(playerName, this.game.score);
+    // Get icon based on type
+    const icons = {
+      info: 'ℹ️',
+      success: '✅',
+      warning: '⚠️',
+      error: '❌'
+    };
     
-    // Clear input and hide overlay
-    if (this.elements.playerNameInput) {
-      this.elements.playerNameInput.value = '';
-    }
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      padding: 1rem 1.5rem;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 15px 35px var(--shadow-color);
+      z-index: 1001;
+      transform: translateX(100%);
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      max-width: 300px;
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    `;
     
-    this.elements.overlayGameOver?.classList.add('hidden');
-    this.updateUI();
+    notification.innerHTML = `
+      <span style="font-size: 1.2em;">${icons[type] || icons.info}</span>
+      <span>${message}</span>
+    `;
     
-    // Show start screen instead of navigating to leaderboard
-    this.elements.overlayStart?.classList.remove('hidden');
-  }
-  
-  clearLeaderboard() {
-    if (confirm('Are you sure you want to clear the leaderboard? This action cannot be undone.')) {
-      this.leaderboard.clearLeaderboard();
-      this.updateUI();
-    }
-  }
-  
-  loadSettingsUI() {
-    // Load current settings into UI
-    if (this.elements.gameSpeedSlider) {
-      this.elements.gameSpeedSlider.value = GameSettings.gameSpeed;
-      this.updateGameSpeedDisplay();
-    }
+    document.body.appendChild(notification);
     
-    if (this.elements.soundToggle) {
-      this.elements.soundToggle.checked = GameSettings.soundEnabled;
-    }
+    // Animate in
+    setTimeout(() => {
+      notification.style.transform = 'translateX(0)';
+    }, 100);
     
-    if (this.elements.difficultySelect) {
-      this.elements.difficultySelect.value = GameSettings.difficulty;
-    }
-    
-    if (this.elements.showFpsToggle) {
-      this.elements.showFpsToggle.checked = GameSettings.showFPS;
-    }
-  }
-  
-  updateGameSpeed(e) {
-    GameSettings.gameSpeed = parseFloat(e.target.value);
-    GameSettings.save();
-    this.updateGameSpeedDisplay();
-  }
-  
-  updateGameSpeedDisplay() {
-    if (this.elements.gameSpeedValue) {
-      this.elements.gameSpeedValue.textContent = `${(GameSettings.gameSpeed * 100).toFixed(0)}%`;
-    }
-  }
-  
-  toggleSound(e) {
-    GameSettings.soundEnabled = e.target.checked;
-    this.audio.setEnabled(GameSettings.soundEnabled);
-    GameSettings.save();
-  }
-  
-  changeDifficulty(e) {
-    GameSettings.difficulty = e.target.value;
-    GameSettings.applyDifficulty();
-    GameSettings.save();
-  }
-  
-  toggleFPS(e) {
-    GameSettings.showFPS = e.target.checked;
-    GameSettings.save();
-  }
-  
-  resetSettings() {
-    if (confirm('Reset all settings to default values?')) {
-      // Reset to default values
-      GameSettings.gameSpeed = 1.0;
-      GameSettings.soundEnabled = true;
-      GameSettings.difficulty = 'normal';
-      GameSettings.showFPS = false;
-      
-      // Apply and save
-      GameSettings.applyDifficulty();
-      GameSettings.save();
-      
-      // Update UI
-      this.loadSettingsUI();
-      
-      // Update audio manager
-      this.audio.setEnabled(GameSettings.soundEnabled);
-    }
-  }
-  
-  updateStatistics() {
-    try {
-      // Get current statistics from localStorage
-      const stats = JSON.parse(localStorage.getItem('birdbird_statistics') || '{}');
-      
-      // Update statistics
-      stats.totalGamesPlayed = (stats.totalGamesPlayed || 0) + 1;
-      stats.totalScore = (stats.totalScore || 0) + this.game.score;
-      stats.averageScore = Math.round(stats.totalScore / stats.totalGamesPlayed);
-      
-      // Update best streak (consecutive games with score > 0)
-      if (this.game.score > 0) {
-        stats.currentStreak = (stats.currentStreak || 0) + 1;
-        stats.bestStreak = Math.max(stats.bestStreak || 0, stats.currentStreak);
-      } else {
-        stats.currentStreak = 0;
-      }
-      
-      // Save statistics
-      localStorage.setItem('birdbird_statistics', JSON.stringify(stats));
-      
-      // Update UI elements
-      if (this.elements.totalGamesPlayed) {
-        this.elements.totalGamesPlayed.textContent = stats.totalGamesPlayed;
-      }
-      if (this.elements.totalScore) {
-        this.elements.totalScore.textContent = stats.totalScore;
-      }
-      if (this.elements.averageScore) {
-        this.elements.averageScore.textContent = stats.averageScore;
-      }
-      if (this.elements.bestStreak) {
-        this.elements.bestStreak.textContent = stats.bestStreak;
-      }
-    } catch (error) {
-      console.warn('Failed to update statistics:', error);
-    }
-  }
-  
-  loadStatistics() {
-    try {
-      const stats = JSON.parse(localStorage.getItem('birdbird_statistics') || '{}');
-      
-      if (this.elements.totalGamesPlayed) {
-        this.elements.totalGamesPlayed.textContent = stats.totalGamesPlayed || 0;
-      }
-      if (this.elements.totalScore) {
-        this.elements.totalScore.textContent = stats.totalScore || 0;
-      }
-      if (this.elements.averageScore) {
-        this.elements.averageScore.textContent = stats.averageScore || 0;
-      }
-      if (this.elements.bestStreak) {
-        this.elements.bestStreak.textContent = stats.bestStreak || 0;
-      }
-    } catch (error) {
-      console.warn('Failed to load statistics:', error);
-    }
+    // Auto remove
+    setTimeout(() => {
+      notification.style.transform = 'translateX(100%)';
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 400);
+    }, duration);
   }
 }
 

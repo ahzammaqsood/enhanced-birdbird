@@ -1,105 +1,99 @@
-// Leaderboard Manager - Handles local leaderboard functionality
+// Leaderboard Manager - BirdBird 2.6 - Enhanced
 class LeaderboardManager {
   constructor() {
-    this.maxEntries = 10;
+    this.scores = this.loadScores();
   }
   
-  getLeaderboard() {
+  loadScores() {
     try {
-      const data = localStorage.getItem(GameConfig.STORAGE.LEADERBOARD);
-      return data ? JSON.parse(data) : [];
-    } catch (error) {
-      console.warn('Failed to load leaderboard:', error);
+      const saved = localStorage.getItem(GameConfig.STORAGE.LEADERBOARD);
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.warn('Failed to load leaderboard:', e);
       return [];
     }
   }
   
-  saveLeaderboard(entries) {
+  saveScores() {
     try {
-      localStorage.setItem(GameConfig.STORAGE.LEADERBOARD, JSON.stringify(entries));
-    } catch (error) {
-      console.warn('Failed to save leaderboard:', error);
+      localStorage.setItem(GameConfig.STORAGE.LEADERBOARD, JSON.stringify(this.scores));
+    } catch (e) {
+      console.warn('Failed to save leaderboard:', e);
     }
   }
   
   addScore(playerName, score) {
-    const entries = this.getLeaderboard();
+    if (!playerName || score < 0) return false;
     
-    const newEntry = {
-      name: this.sanitizeName(playerName),
+    const newScore = {
+      name: playerName.trim().substring(0, 16), // Limit name length
       score: score,
-      date: new Date().toISOString(),
+      date: new Date().toLocaleDateString(),
       timestamp: Date.now()
     };
     
-    entries.push(newEntry);
+    this.scores.push(newScore);
+    this.scores.sort((a, b) => b.score - a.score); // Sort by score descending
+    this.scores = this.scores.slice(0, 10); // Keep only top 10
     
-    // Sort by score (highest first) and keep only top entries
-    entries.sort((a, b) => b.score - a.score);
-    const topEntries = entries.slice(0, this.maxEntries);
+    this.saveScores();
+    this.updateDisplay();
     
-    this.saveLeaderboard(topEntries);
-    return topEntries;
+    return true;
   }
   
-  clearLeaderboard() {
-    try {
-      localStorage.removeItem(GameConfig.STORAGE.LEADERBOARD);
-    } catch (error) {
-      console.warn('Failed to clear leaderboard:', error);
-    }
+  clearScores() {
+    this.scores = [];
+    this.saveScores();
+    this.updateDisplay();
   }
   
-  sanitizeName(name) {
-    if (!name || typeof name !== 'string') {
-      return 'Anonymous';
-    }
+  updateDisplay() {
+    const tbody = document.getElementById('leaderboardBody');
+    if (!tbody) return;
     
-    // Remove HTML tags and limit length
-    return name
-      .replace(/<[^>]*>/g, '')
-      .trim()
-      .slice(0, 16) || 'Anonymous';
-  }
-  
-  formatDate(dateString) {
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString();
-    } catch (error) {
-      return 'Unknown';
-    }
-  }
-  
-  renderLeaderboard(containerElement) {
-    const entries = this.getLeaderboard();
+    tbody.innerHTML = '';
     
-    if (!containerElement) {
-      console.warn('Leaderboard container element not found');
-      return;
-    }
-    
-    if (entries.length === 0) {
-      containerElement.innerHTML = `
-        <tr>
-          <td colspan="4" style="text-align: center; color: var(--muted); padding: 20px;">
-            No scores yet. Be the first to play!
-          </td>
-        </tr>
+    if (this.scores.length === 0) {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td colspan="4" style="text-align: center; padding: 2rem; color: var(--text-muted); font-style: italic;">
+          No scores yet. Play the game to set a record!
+        </td>
       `;
+      tbody.appendChild(row);
       return;
     }
     
-    containerElement.innerHTML = entries
-      .map((entry, index) => `
-        <tr>
-          <td>${index + 1}</td>
-          <td>${this.escapeHtml(entry.name)}</td>
-          <td>${entry.score}</td>
-          <td>${this.formatDate(entry.date)}</td>
-        </tr>
-      `)
-      .join('');
+    this.scores.forEach((score, index) => {
+      const row = document.createElement('tr');
+      row.style.borderBottom = '1px solid var(--border-color)';
+      row.style.transition = 'background-color 0.3s ease';
+      
+      // Add hover effect
+      row.addEventListener('mouseenter', () => {
+        row.style.backgroundColor = 'rgba(100, 255, 218, 0.1)';
+      });
+      
+      row.addEventListener('mouseleave', () => {
+        row.style.backgroundColor = 'transparent';
+      });
+      
+      // Add medal emoji for top 3
+      let rankDisplay = index + 1;
+      if (index === 0) rankDisplay = '🥇';
+      else if (index === 1) rankDisplay = '🥈';
+      else if (index === 2) rankDisplay = '🥉';
+      
+      row.innerHTML = `
+        <td style="padding: 0.75rem; color: var(--text-primary); font-weight: ${index < 3 ? 'bold' : 'normal'};">${rankDisplay}</td>
+        <td style="padding: 0.75rem; color: var(--text-primary); font-weight: ${index < 3 ? 'bold' : 'normal'};">${this.escapeHtml(score.name)}</td>
+        <td style="padding: 0.75rem; color: var(--accent-primary); font-weight: bold; font-size: ${index < 3 ? '1.1em' : '1em'};">${score.score}</td>
+        <td style="padding: 0.75rem; color: var(--text-muted); font-size: 0.9em;">${score.date}</td>
+      `;
+      
+      tbody.appendChild(row);
+    });
   }
   
   escapeHtml(text) {
@@ -108,20 +102,44 @@ class LeaderboardManager {
     return div.innerHTML;
   }
   
+  getTopScore() {
+    return this.scores.length > 0 ? this.scores[0].score : 0;
+  }
+  
   isHighScore(score) {
-    const entries = this.getLeaderboard();
-    if (entries.length < this.maxEntries) {
-      return true;
-    }
-    
-    const lowestScore = entries[entries.length - 1].score;
-    return score > lowestScore;
+    return this.scores.length < 10 || score > this.scores[this.scores.length - 1].score;
   }
   
   getRank(score) {
-    const entries = this.getLeaderboard();
-    const betterScores = entries.filter(entry => entry.score > score).length;
-    return betterScores + 1;
+    if (this.scores.length === 0) return 1;
+    
+    let rank = 1;
+    for (const savedScore of this.scores) {
+      if (score > savedScore.score) {
+        break;
+      }
+      rank++;
+    }
+    
+    return rank;
+  }
+  
+  getScoreStats() {
+    if (this.scores.length === 0) {
+      return {
+        totalGames: 0,
+        averageScore: 0,
+        bestScore: 0
+      };
+    }
+    
+    const totalScore = this.scores.reduce((sum, score) => sum + score.score, 0);
+    
+    return {
+      totalGames: this.scores.length,
+      averageScore: Math.round(totalScore / this.scores.length),
+      bestScore: this.scores[0].score
+    };
   }
 }
 
